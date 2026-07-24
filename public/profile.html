@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Player Esports Resume</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-950 text-white min-h-screen p-6 flex flex-col items-center">
+
+  <div class="w-full max-w-md bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-2xl">
+    <div class="flex items-center gap-2 mb-4">
+      <input id="searchUid" type="text" placeholder="Enter BGMI UID" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-sm">
+      <button onclick="fetchProfile()" class="bg-orange-600 px-4 py-2 text-sm font-bold rounded">Search</button>
+    </div>
+
+    <div id="profileCard" class="hidden border-t border-slate-800 pt-4">
+      <div class="flex items-center gap-4 mb-4">
+        <div class="w-14 h-14 bg-orange-600 rounded-full flex items-center justify-center text-xl font-bold">🎮</div>
+        <div>
+          <h3 id="pIgn" class="text-lg font-bold text-white">BGMI_Player</h3>
+          <p id="pUid" class="text-xs text-slate-400">UID: 51234567</p>
+          <span class="inline-block bg-orange-500/20 text-orange-400 text-[10px] px-2 py-0.5 rounded border border-orange-500/30 mt-1">Verified Athlete</span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3 text-center">
+        <div class="bg-slate-800/50 p-3 rounded border border-slate-800">
+          <p class="text-xs text-slate-400">Tournaments</p>
+          <p id="pPlayed" class="text-lg font-bold text-orange-400">12</p>
+        </div>
+        <div class="bg-slate-800/50 p-3 rounded border border-slate-800">
+          <p class="text-xs text-slate-400">Total Kills</p>
+          <p id="pKills" class="text-lg font-bold text-orange-400">84</p>
+        </div>
+        <div class="bg-slate-800/50 p-3 rounded border border-slate-800">
+          <p class="text-xs text-slate-400">Chicken Dinners</p>
+          <p id="pWins" class="text-lg font-bold text-green-400">4</p>
+        </div>
+        <div class="bg-slate-800/50 p-3 rounded border border-slate-800">
+          <p class="text-xs text-slate-400">K/D Ratio</p>
+          <p id="pKd" class="text-lg font-bold text-green-400">4.2</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    async function fetchProfile() {
+      const uid = document.getElementById('searchUid').value || '51234567';
+      const res = await fetch(`/api/players/${uid}`);
+      const data = await res.json();
+
+      if (data.success) {
+        document.getElementById('profileCard').classList.remove('hidden');
+        document.getElementById('pIgn').innerText = data.player.ign || "Mortal";
+        document.getElementById('pUid').innerText = `UID: ${data.player.bgmiUid}`;
+        document.getElementById('pPlayed').innerText = data.player.stats.tournamentsPlayed;
+        document.getElementById('pKills').innerText = data.player.stats.totalKills;
+        document.getElementById('pWins').innerText = data.player.stats.wins;
+        document.getElementById('pKd').innerText = data.player.stats.kdRatio || "3.8";
+      }
+    }
+  </script>
+</body>
+</html>

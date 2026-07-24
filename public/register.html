@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>BGMI Team Registration</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-950 text-white min-h-screen p-6 flex flex-col items-center">
+  
+  <div class="w-full max-w-md bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-2xl">
+    <h2 class="text-2xl font-bold text-orange-500 mb-2">📝 Tournament Registration</h2>
+    <p class="text-xs text-slate-400 mb-6">Enter details to claim your team slot automatically.</p>
+
+    <div class="space-y-4">
+      <div>
+        <label class="text-xs text-slate-400 uppercase font-semibold">Team Name</label>
+        <input id="teamName" type="text" placeholder="e.g. Soul Esports" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-sm mt-1">
+      </div>
+
+      <div class="border-t border-slate-800 pt-3">
+        <label class="text-xs text-orange-400 uppercase font-semibold">Captain IGN & BGMI UID</label>
+        <div class="flex gap-2 mt-1">
+          <input id="captainIgn" type="text" placeholder="IGN (e.g. Mortal)" class="w-1/2 bg-slate-800 border border-slate-700 rounded p-2 text-sm">
+          <input id="captainUid" type="text" placeholder="UID (e.g. 51234567)" class="w-1/2 bg-slate-800 border border-slate-700 rounded p-2 text-sm">
+        </div>
+      </div>
+
+      <div class="bg-slate-800 p-4 rounded-lg text-center border border-slate-700">
+        <p class="text-xs font-semibold text-slate-300">Scan & Pay Entry Fee: ₹50</p>
+        <div class="w-32 h-32 bg-white text-black mx-auto my-2 flex items-center justify-center font-bold text-xs rounded">
+          [ UPI QR CODE ]
+        </div>
+        <p class="text-[10px] text-slate-400">Slot will lock automatically upon submission.</p>
+      </div>
+
+      <button onclick="registerTeam()" class="w-full bg-orange-600 hover:bg-orange-500 font-bold py-3 rounded text-sm shadow-lg">Submit & Lock Slot</button>
+      <p id="regStatus" class="text-xs text-center font-semibold mt-2"></p>
+    </div>
+  </div>
+
+  <script>
+    async function registerTeam() {
+      const teamName = document.getElementById('teamName').value;
+      const captainIgn = document.getElementById('captainIgn').value;
+      const captainUid = document.getElementById('captainUid').value;
+      const status = document.getElementById('regStatus');
+
+      if (!teamName || !captainIgn || !captainUid) {
+        status.innerText = "❌ Please fill all mandatory fields.";
+        status.className = "text-xs text-center font-semibold text-red-400 mt-2";
+        return;
+      }
+
+      status.innerText = "Locking slot...";
+      status.className = "text-xs text-center font-semibold text-yellow-400 mt-2";
+
+      const res = await fetch('/api/teams/register', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          tournamentId: "65d1a2b3c4d5e6f7a8b9c0d1",
+          teamName,
+          captainIgn,
+          captainUid
+        })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        status.innerText = `✅ ${data.message}`;
+        status.className = "text-xs text-center font-semibold text-green-400 mt-2";
+      } else {
+        status.innerText = `❌ ${data.error}`;
+        status.className = "text-xs text-center font-semibold text-red-400 mt-2";
+      }
+    }
+  </script>
+</body>
+</html>

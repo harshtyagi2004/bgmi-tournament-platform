@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>BGMI Tournament Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-950 text-white min-h-screen p-6">
+  
+  <header class="max-w-4xl mx-auto flex justify-between items-center mb-8 border-b border-slate-800 pb-4">
+    <h1 class="text-3xl font-extrabold text-orange-500">🎮 BGMI ESPORTS PLATFORM</h1>
+    <nav class="space-x-4 text-sm font-semibold">
+      <a href="/index.html" class="text-orange-400">Dashboard</a>
+      <a href="/register.html" class="text-slate-400 hover:text-white">Register Team</a>
+      <a href="/profile.html" class="text-slate-400 hover:text-white">Player Resume</a>
+    </nav>
+  </header>
+
+  <main class="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
+    
+    <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+      <h2 class="text-lg font-bold text-orange-400 mb-3">🔑 1-Click Room Dispatcher</h2>
+      <div class="space-y-3">
+        <input id="roomId" type="text" placeholder="Room ID (e.g. 849201)" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-sm">
+        <input id="password" type="text" placeholder="Room Password (e.g. 1234)" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-sm">
+        <button onclick="dispatchRoom()" class="w-full bg-orange-600 hover:bg-orange-500 font-bold py-2 rounded text-sm">Broadcast to Discord/WhatsApp</button>
+        <p id="roomStatus" class="text-xs text-center font-semibold mt-2"></p>
+      </div>
+    </div>
+
+    <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+      <h2 class="text-lg font-bold text-orange-400 mb-3">📊 Enter Match Score</h2>
+      <div class="space-y-3">
+        <input id="teamId" type="text" placeholder="Team ID / Name" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-sm">
+        <div class="flex gap-2">
+          <input id="kills" type="number" placeholder="Kills" class="w-1/2 bg-slate-800 border border-slate-700 rounded p-2 text-sm">
+          <input id="placement" type="number" placeholder="Rank (1-25)" class="w-1/2 bg-slate-800 border border-slate-700 rounded p-2 text-sm">
+        </div>
+        <button onclick="submitScore()" class="w-full bg-green-600 hover:bg-green-500 font-bold py-2 rounded text-sm">Update Scoreboard</button>
+        <p id="scoreStatus" class="text-xs text-center font-semibold mt-2"></p>
+      </div>
+    </div>
+
+  </main>
+
+  <section class="max-w-4xl mx-auto mt-8 bg-slate-900 border border-slate-800 rounded-xl p-5">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-xl font-bold text-orange-400">🏆 Live Leaderboard</h2>
+      <button onclick="loadLeaderboard()" class="text-xs bg-slate-800 px-3 py-1 rounded border border-slate-700">🔄 Refresh</button>
+    </div>
+    <table class="w-full text-left text-sm text-slate-300">
+      <thead class="bg-slate-800 text-slate-400 uppercase text-xs">
+        <tr>
+          <th class="p-3">Rank</th>
+          <th class="p-3">Team Name</th>
+          <th class="p-3">Slot #</th>
+          <th class="p-3">Total Points</th>
+        </tr>
+      </thead>
+      <tbody id="leaderboardBody">
+        <tr><td colspan="4" class="p-3 text-center text-slate-500">Loading standings...</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <script>
+    const TOURNAMENT_ID = "65d1a2b3c4d5e6f7a8b9c0d1";
+
+    async function dispatchRoom() {
+      const roomId = document.getElementById('roomId').value;
+      const password = document.getElementById('password').value;
+      const status = document.getElementById('roomStatus');
+      
+      const res = await fetch('/api/tournaments/broadcast-room', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ tournamentId: TOURNAMENT_ID, roomId, password })
+      });
+      const data = await res.json();
+      status.innerText = data.success ? "✅ Broadcasted Successfully!" : "❌ Failed!";
+      status.className = data.success ? "text-xs text-center font-semibold text-green-400 mt-2" : "text-xs text-center font-semibold text-red-400 mt-2";
+    }
+
+    async function submitScore() {
+      const teamId = document.getElementById('teamId').value;
+      const kills = parseInt(document.getElementById('kills').value) || 0;
+      const placement = parseInt(document.getElementById('placement').value) || 25;
+      const status = document.getElementById('scoreStatus');
+
+      const res = await fetch('/api/tournaments/score', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          tournamentId: TOURNAMENT_ID,
+          teamResults: [{ teamId, kills, placement }]
+        })
+      });
+      const data = await res.json();
+      status.innerText = data.success ? "✅ Score Recorded!" : "❌ Error!";
+      status.className = data.success ? "text-xs text-center font-semibold text-green-400 mt-2" : "text-xs text-center font-semibold text-red-400 mt-2";
+      loadLeaderboard();
+    }
+
+    async function loadLeaderboard() {
+      const tbody = document.getElementById('leaderboardBody');
+      try {
+        const res = await fetch(`/api/tournaments/${TOURNAMENT_ID}/leaderboard`);
+        const data = await res.json();
+        if (data.success && data.data.length > 0) {
+          tbody.innerHTML = data.data.map(t => `
+            <tr class="border-b border-slate-800">
+              <td class="p-3 font-bold text-orange-400">#${t.rank}</td>
+              <td class="p-3">${t.teamName}</td>
+              <td class="p-3">Slot ${t.slotNumber}</td>
+              <td class="p-3 font-bold">${t.totalPoints} pts</td>
+            </tr>
+          `).join('');
+        } else {
+          tbody.innerHTML = `<tr><td colspan="4" class="p-3 text-center text-slate-500">No score records found yet.</td></tr>`;
+        }
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="4" class="p-3 text-center text-slate-500">Leaderboard server offline.</td></tr>`;
+      }
+    }
+
+    loadLeaderboard();
+  </script>
+</body>
+</html>
