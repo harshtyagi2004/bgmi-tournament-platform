@@ -1,61 +1,67 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const fs = require('fs');
+const path = require('path');
+const multer = require('multer');
+
 const connectDB = require('./config/db');
 const redis = require('./config/redis');
 const { ensureActiveTournament } = require('./services/dbService');
 
 const { submitMatchScore, getLiveLeaderboard } = require('./controllers/leaderboardController');
 const { broadcastRoom } = require('./controllers/roomController');
+const { processScoreScreenshot } = require('./controllers/ocrController');
 const Team = require('./models/Team');
 const User = require('./models/User');
-const multer = require('multer');
-const upload = multer({ dest: 'uploads/' });
-const { processScoreScreenshot } = require('./controllers/ocrController');
 
 const app = express();
 
+// Ensure uploads folder exists dynamically
+const uploadDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+const upload = multer({ dest: uploadDir });
+
 app.use(cors());
 app.use(express.json());
-app.use(express.static('public')); // Serve frontend HTML files
-app.post('/api/tournaments/upload-score-ocr', upload.single('screenshot'), processScoreScreenshot);
+app.use(express.static('public')); // Serve frontend static HTML files
 
 let ACTIVE_TOURNAMENT_ID = null;
 
-// Initialize Database Connections
-connectDB().then(async () => {
-  ACTIVE_TOURNAMENT_ID = await ensureActiveTournament();
-});
-redis.connect().catch(() => {});
-
 // --- API ROUTES ---
 
-// Active Tournament ID Helper Route
+// 1. OCR Screenshot Upload Endpoint
+app.post('/api/tournaments/upload-score-ocr', upload.single('screenshot'), processScoreScreenshot);
+
+// 2. Active Tournament ID Helper Route
 app.get('/api/tournaments/active', (req, res) => {
   res.status(200).json({ success: true, tournamentId: ACTIVE_TOURNAMENT_ID });
 });
 
-// 1. Dispatch Room Credentials
+// 3. Dispatch Room Credentials
 app.post('/api/tournaments/broadcast-room', broadcastRoom);
 
-// 2. Submit Match Points & Get Live Leaderboard
+// 4. Submit Match Points & Get Live Leaderboard
 app.post('/api/tournaments/score', submitMatchScore);
 app.get('/api/tournaments/:tournamentId/leaderboard', getLiveLeaderboard);
 
-// 3. Team Registration & Slot Auto-Assignment API (Persistent MongoDB)
+// 5. Team Registration & Slot Auto-Assignment API
 app.post('/api/teams/register', async (req, res) => {
   try {
     const { teamName, captainIgn, captainUid } = req.body;
     const tournamentId = req.body.tournamentId || ACTIVE_TOURNAMENT_ID;
 
     if (!tournamentId) {
-      return res.status(400).json({ success: false, error: "No active tournament found." });
+      return res.status(400).json({ success: false, error: "No active tournament found in system." });
     }
 
     // Check for Duplicate UID
     const existingTeam = await Team.findOne({ tournamentId, "captain.bgmiUid": captainUid });
     if (existingTeam) {
-      return res.status(400).json({ success: false, error: "This BGMI UID is already registered!" });
+      return res.status(400).json({ success: false, error: "This BGMI UID is already registered in this tournament!" });
     }
 
     // Auto-calculate slot assignment
@@ -93,7 +99,7 @@ app.post('/api/teams/register', async (req, res) => {
   }
 });
 
-// 4. Fetch Real Player Gaming Resume API
+// 6. Fetch Real Player Gaming Resume API
 app.get('/api/players/:uid', async (req, res) => {
   try {
     const { uid } = req.params;
@@ -109,18 +115,40 @@ app.get('/api/players/:uid', async (req, res) => {
   }
 });
 
-// Start Server with Fallback Port
-const startServer = (port) => {
-  const server = app.listen(port, () => {
-    console.log(`🚀 Platform live on: http://localhost:${port}`);
-  });
+// --- SERVER INITIALIZATION ---
+const startServer = async () => {
+  try {
+    // Connect Database First
+    await connectDB();
+    ACTIVE_TOURNAMENT_ID = await ensureActiveTournament();
 
-  server.on('error', (err) => {
-    if (err.code === 'EADDRINUSE') {
-      startServer(port + 1);
-    }
-  });
+    // Connect Redis (Optional Caching)
+    redis.connect().catch(() => {
+      console.warn("⚠️ Redis is offline. Running with fallback DB queries.");
+    });
+
+    const PORT = process.env.PORT || 10000;
+    
+    const listenWithFallback = (port) => {
+      const server = app.listen(port, () => {
+        console.log(`🚀 Platform live on port: ${port}`);
+      });
+
+      server.on('error', (err) => {
+        if (err.code === 'EADDRINUSE') {
+          console.warn(`⚠️ Port ${port} occupied, retrying on ${port + 1}...`);
+          listenWithFallback(port + 1);
+        } else {
+          console.error("Server Error:", err.message);
+        }
+      });
+    };
+
+    listenWithFallback(Number(PORT));
+  } catch (err) {
+    console.error("❌ Failed to start server:", err.message);
+    process.exit(1);
+  }
 };
 
-const PORT = process.env.PORT || 5001;
-startServer(Number(PORT));
+startServer();
