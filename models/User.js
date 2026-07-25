@@ -3,13 +3,14 @@ const mongoose = require('mongoose');
 const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
-  role: { type: String, enum: ['PLAYER', 'ORGANIZER', 'ADMIN'], default: 'PLAYER' },
-  bgmiUid: { type: String, default: '' },
-  ign: { type: String, default: '' },
+  password: { type: String }, // Required for ADMIN
+  bgmiUid: { type: String, sparse: true },
+  ign: { type: String },
+  role: { type: String, enum: ['USER', 'ADMIN'], default: 'USER' },
   stats: {
     tournamentsPlayed: { type: Number, default: 0 },
     totalKills: { type: Number, default: 0 },
-    wins: { type: Number, default: 0 },
+    wins: { type: Number, default: 0 }
   }
 }, { timestamps: true });
 

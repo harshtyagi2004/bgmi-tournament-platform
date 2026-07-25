@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BGMI Organizer Control Panel</title>
+  <title>Admin Portal - BGMI Platform</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen p-4 md:p-8 font-sans">
@@ -14,62 +14,107 @@
       <div class="flex items-center space-x-2">
         <span class="text-2xl">⚙️</span>
         <h1 class="text-lg md:text-xl font-extrabold text-orange-500 tracking-wider whitespace-nowrap">
-          ORGANIZER CONTROL PANEL
+          ORGANIZER ADMIN PORTAL
         </h1>
       </div>
       <nav class="flex items-center space-x-4 text-xs md:text-sm font-semibold whitespace-nowrap">
-        <a href="index.html" class="text-slate-400 hover:text-orange-400 hover:scale-105 transition-all duration-300 ease-in-out">View Site</a>
-        <a href="create-tournament.html" class="text-orange-400 border-b-2 border-orange-400 pb-1 transition-all duration-300 ease-in-out">Create Tournament</a>
+        <a href="index.html" class="text-slate-400 hover:text-orange-400 transition">User Dashboard</a>
+        <button id="logoutBtn" onclick="logoutAdmin()" class="hidden bg-rose-600/80 hover:bg-rose-600 text-white px-3 py-1 rounded text-xs transition">Logout</button>
       </nav>
     </header>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-
-      <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg space-y-4 flex flex-col justify-between">
-        <div>
-          <h2 class="text-xl font-bold text-orange-400 flex items-center gap-2">🔑 1-Click Room Dispatcher</h2>
-          <p class="text-xs text-slate-400 mt-1">Broadcast Custom Room ID & Pass directly to Discord Webhook.</p>
-        </div>
-        <div class="space-y-3">
-          <input id="roomId" type="text" placeholder="Room ID (e.g. 849201)" class="w-full p-3 bg-slate-900 rounded-lg border border-slate-700 text-slate-100 focus:outline-none focus:border-orange-500 text-sm" />
-          <input id="roomPass" type="text" placeholder="Room Password (e.g. 1234)" class="w-full p-3 bg-slate-900 rounded-lg border border-slate-700 text-slate-100 focus:outline-none focus:border-orange-500 text-sm" />
-          <button onclick="dispatchRoom()" class="w-full bg-orange-600 hover:bg-orange-500 text-white p-3 rounded-lg font-bold transition-all duration-300 ease-in-out shadow-md active:scale-95 text-sm">
-            🚀 Broadcast Credentials
-          </button>
-        </div>
-        <p id="dispatchStatus" class="text-xs text-center h-4 font-semibold"></p>
+    <div id="authContainer" class="max-w-md mx-auto bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-xl space-y-6">
+      
+      <div class="flex border-b border-slate-700 pb-2">
+        <button id="tabLogin" onclick="switchAuthTab('login')" class="flex-1 py-2 font-bold text-sm text-orange-400 border-b-2 border-orange-400">Admin Sign In</button>
+        <button id="tabSignup" onclick="switchAuthTab('signup')" class="flex-1 py-2 font-bold text-sm text-slate-400 hover:text-white">Admin Register</button>
       </div>
 
-      <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg space-y-4 flex flex-col justify-between">
+      <div class="space-y-4">
+        <div id="nameField" class="hidden">
+          <label class="text-xs font-bold text-slate-300 uppercase">Organizer Name</label>
+          <input id="adminName" type="text" placeholder="e.g. Krafton Official" class="w-full p-3 mt-1 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-orange-500" />
+        </div>
+
         <div>
-          <h2 class="text-xl font-bold text-cyan-400 flex items-center gap-2">📷 Auto OCR Result Reader</h2>
-          <p class="text-xs text-slate-400 mt-1">Upload end-game screenshot to extract match points automatically.</p>
+          <label class="text-xs font-bold text-slate-300 uppercase">Admin Email *</label>
+          <input id="adminEmail" type="email" placeholder="admin@esports.com" class="w-full p-3 mt-1 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-orange-500" />
         </div>
-        <div class="space-y-3">
-          <input id="screenshot" type="file" accept="image/*" class="w-full text-xs text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-cyan-900 file:text-cyan-200 hover:file:bg-cyan-800 cursor-pointer" />
-          <button onclick="uploadOCR()" class="w-full bg-cyan-600 hover:bg-cyan-500 text-white p-3 rounded-lg font-bold transition-all duration-300 ease-in-out shadow-md active:scale-95 text-sm">
-            🔍 Scan Result Screenshot
-          </button>
+
+        <div>
+          <label class="text-xs font-bold text-slate-300 uppercase">Password *</label>
+          <input id="adminPassword" type="password" placeholder="••••••••" class="w-full p-3 mt-1 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-orange-500" />
         </div>
-        <p id="ocrStatus" class="text-xs text-center text-slate-400 h-4 font-semibold"></p>
+
+        <button id="authBtn" onclick="handleAuth()" class="w-full bg-orange-600 hover:bg-orange-500 text-white p-3 rounded-lg font-bold transition active:scale-95 text-sm">
+          🔐 Sign In as Admin
+        </button>
+
+        <p id="authStatus" class="text-xs text-center h-4 font-semibold"></p>
+      </div>
+    </div>
+
+    <div id="adminDashboard" class="hidden space-y-8">
+      
+      <div class="bg-slate-800 p-4 rounded-xl border border-orange-500/30 flex justify-between items-center">
+        <div>
+          <p class="text-xs text-slate-400 font-bold uppercase">Welcome, <span id="adminDisplayName" class="text-orange-400">Admin</span></p>
+          <h2 class="text-base font-bold text-white">Full Control Panel Active</h2>
+        </div>
+        <a href="create-tournament.html" class="bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white px-4 py-2 rounded-lg font-bold text-xs shadow-md transition">
+          🏆 Create New Tournament
+        </a>
       </div>
 
-      <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg space-y-4 flex flex-col justify-between">
-        <div>
-          <h2 class="text-xl font-bold text-green-400 flex items-center gap-2">📊 Enter Match Score</h2>
-          <p class="text-xs text-slate-400 mt-1">Manually update kills and placement points for registered teams.</p>
-        </div>
-        <div class="space-y-3">
-          <input id="teamName" type="text" placeholder="Team Name or ID (e.g. Soul Esports)" class="w-full p-3 bg-slate-900 rounded-lg border border-slate-700 text-slate-100 focus:outline-none focus:border-green-500 text-sm" />
-          <div class="grid grid-cols-2 gap-2">
-            <input id="kills" type="number" placeholder="Kills" class="p-3 bg-slate-900 rounded-lg border border-slate-700 text-slate-100 focus:outline-none focus:border-green-500 text-sm" />
-            <input id="rank" type="number" placeholder="Rank (1-25)" class="p-3 bg-slate-900 rounded-lg border border-slate-700 text-slate-100 focus:outline-none focus:border-green-500 text-sm" />
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+        <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg space-y-4 flex flex-col justify-between">
+          <div>
+            <h2 class="text-lg font-bold text-orange-400 flex items-center gap-2">🔑 Room Dispatcher</h2>
+            <p class="text-xs text-slate-400 mt-1">Broadcast Custom Room ID & Pass to Discord.</p>
           </div>
-          <button onclick="submitScore()" class="w-full bg-green-600 hover:bg-green-500 text-white p-3 rounded-lg font-bold transition-all duration-300 ease-in-out shadow-md active:scale-95 text-sm">
-            📈 Update Scoreboard
-          </button>
+          <div class="space-y-3">
+            <input id="roomId" type="text" placeholder="Room ID (e.g. 849201)" class="w-full p-3 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-orange-500" />
+            <input id="roomPass" type="text" placeholder="Room Password (e.g. 1234)" class="w-full p-3 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-orange-500" />
+            <button onclick="dispatchRoom()" class="w-full bg-orange-600 hover:bg-orange-500 text-white p-3 rounded-lg font-bold transition text-sm">
+              🚀 Broadcast Credentials
+            </button>
+          </div>
+          <p id="dispatchStatus" class="text-xs text-center h-4 font-semibold"></p>
         </div>
-        <p id="scoreStatus" class="text-xs text-center h-4 font-semibold"></p>
+
+        <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg space-y-4 flex flex-col justify-between">
+          <div>
+            <h2 class="text-lg font-bold text-cyan-400 flex items-center gap-2">📷 Auto OCR Result Reader</h2>
+            <p class="text-xs text-slate-400 mt-1">Upload end-game screenshot to parse score automatically.</p>
+          </div>
+          <div class="space-y-3">
+            <input id="screenshot" type="file" accept="image/*" class="w-full text-xs text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-cyan-900 file:text-cyan-200 hover:file:bg-cyan-800 cursor-pointer" />
+            <button onclick="uploadOCR()" class="w-full bg-cyan-600 hover:bg-cyan-500 text-white p-3 rounded-lg font-bold transition text-sm">
+              🔍 Scan Result Screenshot
+            </button>
+          </div>
+          <p id="ocrStatus" class="text-xs text-center text-slate-400 h-4 font-semibold"></p>
+        </div>
+
+        <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg space-y-4 flex flex-col justify-between">
+          <div>
+            <h2 class="text-lg font-bold text-green-400 flex items-center gap-2">📊 Enter Match Score</h2>
+            <p class="text-xs text-slate-400 mt-1">Update kills and placement points manually.</p>
+          </div>
+          <div class="space-y-3">
+            <input id="teamName" type="text" placeholder="Team Name (e.g. Soul Esports)" class="w-full p-3 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-green-500" />
+            <div class="grid grid-cols-2 gap-2">
+              <input id="kills" type="number" placeholder="Kills" class="p-3 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-green-500" />
+              <input id="rank" type="number" placeholder="Rank (1-25)" class="p-3 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-green-500" />
+            </div>
+            <button onclick="submitScore()" class="w-full bg-green-600 hover:bg-green-500 text-white p-3 rounded-lg font-bold transition text-sm">
+              📈 Update Scoreboard
+            </button>
+          </div>
+          <p id="scoreStatus" class="text-xs text-center h-4 font-semibold"></p>
+        </div>
+
       </div>
 
     </div>
@@ -77,19 +122,99 @@
   </div>
 
   <script>
+    let authMode = "login";
+
+    function switchAuthTab(mode) {
+      authMode = mode;
+      const nameField = document.getElementById('nameField');
+      const authBtn = document.getElementById('authBtn');
+      const tabLogin = document.getElementById('tabLogin');
+      const tabSignup = document.getElementById('tabSignup');
+
+      if (mode === 'signup') {
+        nameField.classList.remove('hidden');
+        authBtn.innerText = "🚀 Register as New Admin";
+        tabSignup.className = "flex-1 py-2 font-bold text-sm text-orange-400 border-b-2 border-orange-400";
+        tabLogin.className = "flex-1 py-2 font-bold text-sm text-slate-400 hover:text-white";
+      } else {
+        nameField.classList.add('hidden');
+        authBtn.innerText = "🔐 Sign In as Admin";
+        tabLogin.className = "flex-1 py-2 font-bold text-sm text-orange-400 border-b-2 border-orange-400";
+        tabSignup.className = "flex-1 py-2 font-bold text-sm text-slate-400 hover:text-white";
+      }
+    }
+
+    async function handleAuth() {
+      const email = document.getElementById('adminEmail').value.trim();
+      const password = document.getElementById('adminPassword').value.trim();
+      const name = document.getElementById('adminName').value.trim();
+      const statusEl = document.getElementById('authStatus');
+
+      if (!email || !password) {
+        statusEl.className = "text-xs text-center font-semibold text-rose-400";
+        statusEl.innerText = "❌ Please enter Email and Password!";
+        return;
+      }
+
+      statusEl.className = "text-xs text-center font-semibold text-orange-400";
+      statusEl.innerText = "⏳ Authenticating...";
+
+      const endpoint = authMode === 'signup' ? '/api/admin/signup' : '/api/admin/login';
+      try {
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password, name })
+        });
+        const data = await res.json();
+
+        if (res.ok && data.token) {
+          localStorage.setItem('adminToken', data.token);
+          localStorage.setItem('adminName', data.admin?.name || 'Organizer');
+          checkAdminSession();
+        } else {
+          statusEl.className = "text-xs text-center font-semibold text-rose-400";
+          statusEl.innerText = `❌ ${data.error || 'Authentication failed!'}`;
+        }
+      } catch (err) {
+        statusEl.className = "text-xs text-center font-semibold text-rose-400";
+        statusEl.innerText = "❌ Server error occurred.";
+      }
+    }
+
+    function checkAdminSession() {
+      const token = localStorage.getItem('adminToken');
+      const name = localStorage.getItem('adminName');
+      const authContainer = document.getElementById('authContainer');
+      const adminDashboard = document.getElementById('adminDashboard');
+      const logoutBtn = document.getElementById('logoutBtn');
+
+      if (token) {
+        authContainer.classList.add('hidden');
+        adminDashboard.classList.remove('hidden');
+        logoutBtn.classList.remove('hidden');
+        document.getElementById('adminDisplayName').innerText = name || 'Organizer';
+      } else {
+        authContainer.classList.remove('hidden');
+        adminDashboard.classList.add('hidden');
+        logoutBtn.classList.add('hidden');
+      }
+    }
+
+    function logoutAdmin() {
+      localStorage.removeItem('adminToken');
+      localStorage.removeItem('adminName');
+      checkAdminSession();
+    }
+
     async function dispatchRoom() {
       const roomId = document.getElementById('roomId').value.trim();
       const roomPassword = document.getElementById('roomPass').value.trim();
       const statusEl = document.getElementById('dispatchStatus');
 
-      if (!roomId || !roomPassword) {
-        statusEl.className = "text-xs text-center font-semibold text-rose-400";
-        statusEl.innerText = "❌ Enter Room ID & Password!";
-        return;
-      }
-
+      if (!roomId || !roomPassword) return alert("Enter Room ID & Password!");
       statusEl.className = "text-xs text-center font-semibold text-orange-400";
-      statusEl.innerText = "⏳ Dispatching room...";
+      statusEl.innerText = "⏳ Dispatching...";
 
       try {
         const res = await fetch('/api/tournaments/broadcast-room', {
@@ -108,14 +233,12 @@
     async function uploadOCR() {
       const fileInput = document.getElementById('screenshot');
       const statusEl = document.getElementById('ocrStatus');
-
       if (!fileInput.files[0]) return alert("Select image first!");
 
       const formData = new FormData();
       formData.append('screenshot', fileInput.files[0]);
-
       statusEl.className = "text-xs text-center font-semibold text-cyan-400";
-      statusEl.innerText = "🔍 Scanning screenshot...";
+      statusEl.innerText = "🔍 Scanning image...";
 
       try {
         const res = await fetch('/api/tournaments/upload-score-ocr', { method: 'POST', body: formData });
@@ -134,7 +257,6 @@
       const statusEl = document.getElementById('scoreStatus');
 
       if (!teamId || kills === "" || !rank) return alert("Fill all fields!");
-
       statusEl.className = "text-xs text-center font-semibold text-green-400";
       statusEl.innerText = "⏳ Updating score...";
 
@@ -157,6 +279,8 @@
         statusEl.innerText = "❌ Server error occurred.";
       }
     }
+
+    window.onload = checkAdminSession;
   </script>
 </body>
 </html>
