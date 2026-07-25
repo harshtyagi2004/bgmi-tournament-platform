@@ -34,9 +34,17 @@ const upload = multer({ dest: uploadDir });
 // --- MIDDLEWARE ---
 app.use(cors());
 app.use(express.json());
-app.use(express.static('public')); // Serves frontend HTML files from /public directory
+app.use(express.static('public')); // Serve static frontend HTML files from /public folder
 
 let ACTIVE_TOURNAMENT_ID = null;
+
+// ==========================================
+// 🏠 ROOT REDIRECT ROUTE
+// ==========================================
+// Site kholte hi by default Dashboard (/index.html) khulega
+app.get('/', (req, res) => {
+  res.redirect('/index.html');
+});
 
 // ==========================================
 // 🚀 TOURNAMENT & ORGANIZER API ROUTES
@@ -78,7 +86,7 @@ app.post('/api/tournaments/create', async (req, res) => {
 
     await newTournament.save();
 
-    // Set newly created tournament as the active tournament
+    // Automatically set newly created tournament as the active tournament
     ACTIVE_TOURNAMENT_ID = newTournament._id.toString();
 
     res.status(200).json({
@@ -204,7 +212,7 @@ app.get('/api/tournaments/:tournamentId/leaderboard', getLiveLeaderboard);
 app.post('/api/payments/create-order', createOrder);
 app.post('/api/payments/verify', verifyPayment);
 
-// 9. FETCH PLAYER GAMING RESUME PROFILE
+// 9. FETCH PLAYER GAMING RESUME PROFILE / STATS
 app.get('/api/players/:uid', async (req, res) => {
   try {
     const { uid } = req.params;
