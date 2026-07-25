@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Admin Portal - BGMI Platform</title>
+  <title>Admin Portal - BGMI Esports</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen p-4 md:p-8 font-sans">
@@ -19,49 +19,58 @@
       </div>
       <nav class="flex items-center space-x-4 text-xs md:text-sm font-semibold whitespace-nowrap">
         <a href="index.html" class="text-slate-400 hover:text-orange-400 transition">User Dashboard</a>
-        <button id="logoutBtn" onclick="logoutAdmin()" class="hidden bg-rose-600/80 hover:bg-rose-600 text-white px-3 py-1 rounded text-xs transition">Logout</button>
+        <button id="logoutBtn" onclick="logoutAdmin()" class="hidden bg-rose-600/80 hover:bg-rose-600 text-white px-3 py-1 rounded text-xs transition">Logout Session</button>
       </nav>
     </header>
 
-    <div id="authContainer" class="max-w-md mx-auto bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-xl space-y-6">
+    <div id="authContainer" class="max-w-md mx-auto bg-slate-800 p-6 md:p-8 rounded-2xl border border-orange-500/30 shadow-2xl space-y-6">
       
-      <div class="flex border-b border-slate-700 pb-2">
-        <button id="tabLogin" onclick="switchAuthTab('login')" class="flex-1 py-2 font-bold text-sm text-orange-400 border-b-2 border-orange-400">Admin Sign In</button>
-        <button id="tabSignup" onclick="switchAuthTab('signup')" class="flex-1 py-2 font-bold text-sm text-slate-400 hover:text-white">Admin Register</button>
+      <div class="text-center space-y-1">
+        <h2 class="text-xl font-extrabold text-orange-400">ADMIN ACCESS</h2>
+        <p class="text-xs text-slate-400">Sign in or register as an organizer to manage tournaments.</p>
+      </div>
+
+      <div class="flex border-b border-slate-700">
+        <button id="tabLogin" onclick="switchAuthTab('login')" class="flex-1 py-2 font-bold text-sm text-orange-400 border-b-2 border-orange-400 transition-all duration-300">
+          🔑 Sign In
+        </button>
+        <button id="tabSignup" onclick="switchAuthTab('signup')" class="flex-1 py-2 font-bold text-sm text-slate-400 hover:text-white transition-all duration-300">
+          📝 Sign Up (Register)
+        </button>
       </div>
 
       <div class="space-y-4">
         <div id="nameField" class="hidden">
-          <label class="text-xs font-bold text-slate-300 uppercase">Organizer Name</label>
-          <input id="adminName" type="text" placeholder="e.g. Krafton Official" class="w-full p-3 mt-1 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-orange-500" />
+          <label class="text-xs font-bold text-slate-300 uppercase tracking-wider">Organizer Name</label>
+          <input id="adminName" type="text" placeholder="e.g. Krafton Official" class="w-full p-3 mt-1 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-orange-500 transition" />
         </div>
 
         <div>
-          <label class="text-xs font-bold text-slate-300 uppercase">Admin Email *</label>
-          <input id="adminEmail" type="email" placeholder="admin@esports.com" class="w-full p-3 mt-1 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-orange-500" />
+          <label class="text-xs font-bold text-slate-300 uppercase tracking-wider">Admin Email *</label>
+          <input id="adminEmail" type="email" placeholder="admin@esports.com" class="w-full p-3 mt-1 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-orange-500 transition" />
         </div>
 
         <div>
-          <label class="text-xs font-bold text-slate-300 uppercase">Password *</label>
-          <input id="adminPassword" type="password" placeholder="••••••••" class="w-full p-3 mt-1 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-orange-500" />
+          <label class="text-xs font-bold text-slate-300 uppercase tracking-wider">Password *</label>
+          <input id="adminPassword" type="password" placeholder="••••••••" class="w-full p-3 mt-1 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-orange-500 transition" />
         </div>
 
-        <button id="authBtn" onclick="handleAuth()" class="w-full bg-orange-600 hover:bg-orange-500 text-white p-3 rounded-lg font-bold transition active:scale-95 text-sm">
+        <button id="authBtn" onclick="handleAuth()" class="w-full bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white p-3.5 rounded-lg font-bold transition-all duration-300 shadow-lg active:scale-95 text-sm">
           🔐 Sign In as Admin
         </button>
 
-        <p id="authStatus" class="text-xs text-center h-4 font-semibold"></p>
+        <p id="authStatus" class="text-xs text-center h-4 font-semibold mt-2"></p>
       </div>
     </div>
 
     <div id="adminDashboard" class="hidden space-y-8">
       
-      <div class="bg-slate-800 p-4 rounded-xl border border-orange-500/30 flex justify-between items-center">
+      <div class="bg-slate-800 p-5 rounded-xl border border-orange-500/40 flex justify-between items-center shadow-lg">
         <div>
-          <p class="text-xs text-slate-400 font-bold uppercase">Welcome, <span id="adminDisplayName" class="text-orange-400">Admin</span></p>
-          <h2 class="text-base font-bold text-white">Full Control Panel Active</h2>
+          <p class="text-xs text-slate-400 font-bold uppercase tracking-wider">Active Organizer Session</p>
+          <h2 class="text-lg font-extrabold text-white">Welcome, <span id="adminDisplayName" class="text-orange-400">Admin</span> 👑</h2>
         </div>
-        <a href="create-tournament.html" class="bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white px-4 py-2 rounded-lg font-bold text-xs shadow-md transition">
+        <a href="create-tournament.html" class="bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white px-4 py-2.5 rounded-lg font-bold text-xs shadow-md transition-all duration-300 active:scale-95">
           🏆 Create New Tournament
         </a>
       </div>
@@ -71,7 +80,7 @@
         <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg space-y-4 flex flex-col justify-between">
           <div>
             <h2 class="text-lg font-bold text-orange-400 flex items-center gap-2">🔑 Room Dispatcher</h2>
-            <p class="text-xs text-slate-400 mt-1">Broadcast Custom Room ID & Pass to Discord.</p>
+            <p class="text-xs text-slate-400 mt-1">Broadcast Custom Room ID & Pass directly to Discord Webhook.</p>
           </div>
           <div class="space-y-3">
             <input id="roomId" type="text" placeholder="Room ID (e.g. 849201)" class="w-full p-3 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-orange-500" />
@@ -86,7 +95,7 @@
         <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg space-y-4 flex flex-col justify-between">
           <div>
             <h2 class="text-lg font-bold text-cyan-400 flex items-center gap-2">📷 Auto OCR Result Reader</h2>
-            <p class="text-xs text-slate-400 mt-1">Upload end-game screenshot to parse score automatically.</p>
+            <p class="text-xs text-slate-400 mt-1">Upload end-game screenshot to extract match points automatically.</p>
           </div>
           <div class="space-y-3">
             <input id="screenshot" type="file" accept="image/*" class="w-full text-xs text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-cyan-900 file:text-cyan-200 hover:file:bg-cyan-800 cursor-pointer" />
@@ -100,7 +109,7 @@
         <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg space-y-4 flex flex-col justify-between">
           <div>
             <h2 class="text-lg font-bold text-green-400 flex items-center gap-2">📊 Enter Match Score</h2>
-            <p class="text-xs text-slate-400 mt-1">Update kills and placement points manually.</p>
+            <p class="text-xs text-slate-400 mt-1">Manually update kills and placement points for teams.</p>
           </div>
           <div class="space-y-3">
             <input id="teamName" type="text" placeholder="Team Name (e.g. Soul Esports)" class="w-full p-3 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-green-500" />
@@ -134,13 +143,13 @@
       if (mode === 'signup') {
         nameField.classList.remove('hidden');
         authBtn.innerText = "🚀 Register as New Admin";
-        tabSignup.className = "flex-1 py-2 font-bold text-sm text-orange-400 border-b-2 border-orange-400";
-        tabLogin.className = "flex-1 py-2 font-bold text-sm text-slate-400 hover:text-white";
+        tabSignup.className = "flex-1 py-2 font-bold text-sm text-orange-400 border-b-2 border-orange-400 transition-all duration-300";
+        tabLogin.className = "flex-1 py-2 font-bold text-sm text-slate-400 hover:text-white transition-all duration-300";
       } else {
         nameField.classList.add('hidden');
         authBtn.innerText = "🔐 Sign In as Admin";
-        tabLogin.className = "flex-1 py-2 font-bold text-sm text-orange-400 border-b-2 border-orange-400";
-        tabSignup.className = "flex-1 py-2 font-bold text-sm text-slate-400 hover:text-white";
+        tabLogin.className = "flex-1 py-2 font-bold text-sm text-orange-400 border-b-2 border-orange-400 transition-all duration-300";
+        tabSignup.className = "flex-1 py-2 font-bold text-sm text-slate-400 hover:text-white transition-all duration-300";
       }
     }
 
@@ -189,7 +198,7 @@
       const adminDashboard = document.getElementById('adminDashboard');
       const logoutBtn = document.getElementById('logoutBtn');
 
-      if (token) {
+      if (token && token !== "null" && token !== "undefined") {
         authContainer.classList.add('hidden');
         adminDashboard.classList.remove('hidden');
         logoutBtn.classList.remove('hidden');
