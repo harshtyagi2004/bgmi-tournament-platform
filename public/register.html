@@ -3,15 +3,16 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BGMI Team Registration</title>
+  <title>BGMI Team Registration & Payment</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen p-4 md:p-8 font-sans">
 
   <div class="max-w-3xl mx-auto space-y-6">
     
     <header class="flex justify-between items-center border-b border-slate-700 pb-4">
-      <h1 class="text-2xl font-bold text-orange-500">📝 TEAM REGISTRATION</h1>
+      <h1 class="text-2xl font-bold text-orange-500">📝 SQUAD REGISTRATION</h1>
       <nav class="space-x-4 text-sm font-semibold">
         <a href="index.html" class="text-slate-400 hover:text-orange-400">Dashboard</a>
         <a href="create-tournament.html" class="text-slate-400 hover:text-orange-400">Create Tournament</a>
@@ -20,13 +21,15 @@
       </nav>
     </header>
 
-    <div id="tournamentBanner" class="bg-slate-800/80 p-4 rounded-xl border border-orange-500/30 flex justify-between items-center">
+    <div id="tournamentBanner" class="bg-slate-800/90 p-5 rounded-xl border border-orange-500/40 shadow-lg flex justify-between items-center">
       <div>
-        <p class="text-xs text-slate-400 font-bold uppercase tracking-wider">Active Tournament</p>
-        <h2 id="activeTourneyTitle" class="text-lg font-bold text-orange-400">Loading Active Tournament...</h2>
+        <p class="text-xs text-slate-400 font-bold uppercase tracking-wider">Active Tournament Selected</p>
+        <h2 id="activeTourneyTitle" class="text-xl font-extrabold text-orange-400 mt-0.5">Loading Active Tournament...</h2>
       </div>
       <div class="text-right">
-        <span id="activeTourneyMode" class="text-xs font-extrabold bg-cyan-900 text-cyan-200 px-3 py-1 rounded-full uppercase">SQUAD</span>
+        <span id="activeTourneyMode" class="text-xs font-bold bg-cyan-900 text-cyan-200 px-3 py-1 rounded-full uppercase">SQUAD</span>
+        <p class="text-xs text-slate-400 font-bold mt-2">ENTRY FEE</p>
+        <p id="activeTourneyFee" class="text-xl font-black text-emerald-400">₹0</p>
       </div>
     </div>
 
@@ -91,7 +94,7 @@
         </div>
       </div>
 
-      <button onclick="registerSquad()" 
+      <button id="registerBtn" onclick="registerAndPay()" 
         class="w-full bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white p-3.5 rounded-lg font-bold transition shadow-lg active:scale-95 text-base">
         🚀 Register Team & Reserve Slot
       </button>
@@ -104,6 +107,7 @@
   <script>
     let activeTournament = null;
 
+    // Fetch Active Tournament Details On Page Load
     async function loadActiveTournament() {
       try {
         const res = await fetch('/api/tournaments/active');
@@ -111,17 +115,28 @@
         
         if (data.success && data.tournament) {
           activeTournament = data.tournament;
-          document.getElementById('activeTourneyTitle').innerText = activeTournament.title || "BGMI Championship";
+          document.getElementById('activeTourneyTitle').innerText = activeTournament.title || "BGMI Tournament";
           document.getElementById('activeTourneyMode').innerText = activeTournament.mode || "SQUAD";
+          
+          const fee = activeTournament.entryFee ?? 0;
+          document.getElementById('activeTourneyFee').innerText = fee > 0 ? `₹${fee}` : "FREE";
+
+          const btn = document.getElementById('registerBtn');
+          if (fee > 0) {
+            btn.innerText = `💳 Pay ₹${fee} via UPI & Lock Squad Slot`;
+          } else {
+            btn.innerText = `🚀 Register Team & Lock Free Slot`;
+          }
         } else {
           document.getElementById('activeTourneyTitle').innerText = "No Active Tournament Found";
+          document.getElementById('activeTourneyFee').innerText = "N/A";
         }
       } catch (err) {
         console.warn("Could not load active tournament:", err);
       }
     }
 
-    async function registerSquad() {
+    async function registerAndPay() {
       const teamName = document.getElementById('teamName').value.trim();
       const captainIgn = document.getElementById('captainIgn').value.trim();
       const captainUid = document.getElementById('captainUid').value.trim();
@@ -144,9 +159,10 @@
       });
 
       statusEl.className = "text-xs text-center font-semibold text-orange-400";
-      statusEl.innerText = "⏳ Registering team & securing slot...";
+      statusEl.innerText = "⏳ Registering squad in database...";
 
       try {
+        // Step 1: Register Squad Data in MongoDB
         const regRes = await fetch('/api/teams/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -166,8 +182,52 @@
           return;
         }
 
-        statusEl.className = "text-xs text-center font-semibold text-emerald-400";
-        statusEl.innerText = `🎉 Team "${teamName}" Registered Successfully! Assigned Slot: #${regData.team.slotNumber}`;
+        const fee = activeTournament ? (activeTournament.entryFee || 0) : 0;
+
+        // FREE TOURNAMENT FLOW
+        if (fee === 0) {
+          statusEl.className = "text-xs text-center font-semibold text-emerald-400";
+          statusEl.innerText = `🎉 Squad "${teamName}" Registered Successfully! Slot #${regData.team.slotNumber} Reserved.`;
+          return;
+        }
+
+        // PAID TOURNAMENT FLOW -> Trigger Razorpay Gateway
+        statusEl.innerText = "⏳ Creating UPI payment order...";
+        const orderRes = await fetch('/api/payments/create-order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ amount: fee })
+        });
+        const orderData = await orderRes.json();
+
+        if (!orderData.success) {
+          statusEl.className = "text-xs text-center font-semibold text-emerald-400";
+          statusEl.innerText = `🎉 Squad Registered! Assigned Slot: #${regData.team.slotNumber}`;
+          return;
+        }
+
+        // Open Razorpay UPI Modal
+        const options = {
+          key: "rzp_test_dummy_key",
+          amount: orderData.order.amount,
+          currency: "INR",
+          name: "BGMI Esports Platform",
+          description: `Entry Fee for ${activeTournament?.title || 'Tournament'} (Slot #${regData.team.slotNumber})`,
+          order_id: orderData.order.id,
+          handler: async function (response) {
+            statusEl.innerText = "⏳ Verifying UPI payment status...";
+            await fetch('/api/payments/verify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ ...response, teamId: regData.team._id })
+            });
+            statusEl.className = "text-xs text-center font-semibold text-emerald-400";
+            statusEl.innerText = `🎉 Payment Verified! Slot #${regData.team.slotNumber} Locked for ${teamName}.`;
+          }
+        };
+
+        const rzp = new Razorpay(options);
+        rzp.open();
 
       } catch (err) {
         statusEl.className = "text-xs text-center font-semibold text-rose-400";
