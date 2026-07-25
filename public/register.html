@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>BGMI Team Registration & Slot Locker</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen p-4 md:p-8 font-sans">
 
@@ -100,31 +99,39 @@
   </div>
 
   <div id="paymentModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
-    <div class="bg-slate-800 max-w-sm w-full p-6 rounded-2xl border border-emerald-500/40 shadow-2xl text-center space-y-5 relative">
+    <div class="bg-slate-800 max-w-sm w-full p-6 rounded-2xl border border-emerald-500/40 shadow-2xl text-center space-y-4 relative">
       <h3 class="text-lg font-extrabold text-emerald-400">💳 UPI Entry Fee Checkout</h3>
-      <p class="text-xs text-slate-300">Scan QR Code using GPay, PhonePe, or Paytm to complete registration.</p>
+      <p class="text-xs text-slate-300">Scan QR Code using GPay, PhonePe, or Paytm to pay.</p>
       
       <div class="bg-white p-3 rounded-xl inline-block border-2 border-emerald-500">
-        <img id="qrImage" src="" alt="UPI QR Code" class="w-48 h-48 mx-auto" />
+        <img id="qrImage" src="" alt="UPI QR Code" class="w-44 h-48 mx-auto" />
       </div>
 
-      <div class="bg-slate-900 p-3 rounded-lg border border-slate-700 text-xs space-y-1">
-        <p class="text-slate-400">Amount To Pay: <span id="modalAmount" class="font-extrabold text-emerald-400 text-sm">₹0</span></p>
-        <p class="text-slate-400">UPI ID: <span class="font-mono text-amber-400">esports@upi</span></p>
+      <div class="bg-slate-900 p-3 rounded-lg border border-slate-700 text-xs space-y-1 text-left">
+        <p class="text-slate-400 flex justify-between"><span>Amount:</span> <span id="modalAmount" class="font-extrabold text-emerald-400">₹0</span></p>
+        <p class="text-slate-400 flex justify-between"><span>UPI ID:</span> <span id="displayUpiId" class="font-mono text-amber-400 font-bold">---</span></p>
+      </div>
+
+      <div class="text-left space-y-1">
+        <label class="text-[11px] font-bold text-amber-400 uppercase tracking-wider">Enter 12-Digit UTR / Ref No. *</label>
+        <input id="utrInput" type="text" maxlength="12" placeholder="e.g. 420198273615" 
+          class="w-full p-3 bg-slate-900 rounded-lg border border-slate-700 text-white font-mono text-xs focus:outline-none focus:border-emerald-500" />
+        <p id="utrError" class="text-[10px] text-rose-400 hidden">Please enter valid 12-digit UTR number from UPI app.</p>
       </div>
 
       <button onclick="confirmUpiPayment()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-lg font-bold text-sm transition shadow-lg active:scale-95">
-        ✅ I Have Paid (Confirm & Lock Slot)
+        ✅ Submit UTR & Lock Slot
       </button>
       
-      <button onclick="closePaymentModal()" class="text-xs text-slate-400 hover:text-rose-400 underline block mx-auto">
+      <button onclick="closePaymentModal()" class="text-xs text-slate-400 hover:text-rose-400 underline block mx-auto pt-1">
         Cancel Registration
       </button>
     </div>
   </div>
 
   <script>
-    const MY_UPI_ID = "tyagi2002@ptyes";
+    // ⚙️ SET YOUR ACTUAL UPI ID HERE:
+    const MY_UPI_ID = "YOUR_CUSTOM_UPI_ID_HERE"; // e.g. "9876543210@paytm" or "username@okaxis"
 
     let activeTournament = null;
     let pendingTeamData = null;
@@ -174,60 +181,45 @@
 
       const fee = activeTournament ? (activeTournament.entryFee || 0) : 0;
 
-      // Try Razorpay standard checkout first if order API is online
       if (fee > 0) {
-        try {
-          const orderRes = await fetch('/api/payments/create-order', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ amount: fee })
-          });
-          const orderData = await orderRes.json();
-
-          if (orderData.success && orderData.order) {
-            // Open Razorpay Native Popup
-            const options = {
-              key: "rzp_test_dummy_key",
-              amount: orderData.order.amount,
-              currency: "INR",
-              name: "BGMI Esports Platform",
-              description: `Entry Fee ₹${fee}`,
-              order_id: orderData.order.id,
-              handler: async function (response) {
-                saveRegistration(teamName, captainIgn, captainUid, members);
-              }
-            };
-            const rzp = new Razorpay(options);
-            rzp.open();
-            return;
-          }
-        } catch (e) {
-          console.log("Razorpay Keys inactive, launching UPI QR Modal fallback.");
-        }
-
-        // Fallback: Open Direct Interactive UPI QR Popup Modal!
         pendingTeamData = { teamName, captainIgn, captainUid, members };
         document.getElementById('modalAmount').innerText = `₹${fee}`;
-        document.getElementById('qrImage').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi://pay?pa=esports@upi%26pn=BGMI_Esports%26am=${fee}%26cu=INR`;
+        document.getElementById('displayUpiId').innerText = MY_UPI_ID;
+        document.getElementById('utrInput').value = "";
+        document.getElementById('utrError').classList.add('hidden');
+        
+        // Generate Dynamic UPI QR Code
+        const upiUrl = `upi://pay?pa=${encodeURIComponent(MY_UPI_ID)}&pn=BGMI_Tournament&am=${fee}&cu=INR`;
+        document.getElementById('qrImage').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiUrl)}`;
+        
         document.getElementById('paymentModal').classList.remove('hidden');
         return;
       }
 
-      // Free Tournament direct registration
-      saveRegistration(teamName, captainIgn, captainUid, members);
+      saveRegistration(teamName, captainIgn, captainUid, members, "FREE");
     }
 
     async function confirmUpiPayment() {
       if (!pendingTeamData) return;
+      const utrVal = document.getElementById('utrInput').value.trim();
+      const utrErr = document.getElementById('utrError');
+
+      // Validation: UTR must be minimum 8-12 alphanumeric characters
+      if (!utrVal || utrVal.length < 8) {
+        utrErr.classList.remove('hidden');
+        return;
+      }
+
+      utrErr.classList.add('hidden');
       document.getElementById('paymentModal').classList.add('hidden');
-      saveRegistration(pendingTeamData.teamName, pendingTeamData.captainIgn, pendingTeamData.captainUid, pendingTeamData.members);
+      saveRegistration(pendingTeamData.teamName, pendingTeamData.captainIgn, pendingTeamData.captainUid, pendingTeamData.members, utrVal);
     }
 
     function closePaymentModal() {
       document.getElementById('paymentModal').classList.add('hidden');
     }
 
-    async function saveRegistration(teamName, captainIgn, captainUid, members) {
+    async function saveRegistration(teamName, captainIgn, captainUid, members, transactionId) {
       const statusEl = document.getElementById('regStatus');
       statusEl.className = "text-xs text-center font-semibold text-orange-400";
       statusEl.innerText = "⏳ Saving team & locking slot...";
@@ -236,13 +228,13 @@
         const regRes = await fetch('/api/teams/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ teamName, captainIgn, captainUid, members, tournamentId: activeTournament?._id })
+          body: JSON.stringify({ teamName, captainIgn, captainUid, members, transactionId, tournamentId: activeTournament?._id })
         });
         const regData = await regRes.json();
 
         if (regRes.ok) {
           statusEl.className = "text-xs text-center font-semibold text-emerald-400";
-          statusEl.innerText = `🎉 Payment Verified! Squad "${teamName}" Registered & Slot #${regData.team.slotNumber} Locked!`;
+          statusEl.innerText = `🎉 Success! Squad "${teamName}" Registered & Slot #${regData.team.slotNumber} Locked!`;
         } else {
           statusEl.className = "text-xs text-center font-semibold text-rose-400";
           statusEl.innerText = `❌ ${regData.error || 'Registration failed'}`;

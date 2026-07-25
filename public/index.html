@@ -1,15 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>BGMI Esports Dashboard</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
+
 <body class="bg-slate-900 text-slate-100 min-h-screen p-4 md:p-8 font-sans">
 
   <div class="max-w-6xl mx-auto space-y-8">
-    
+
     <header class="flex justify-between items-center border-b border-slate-700 pb-4">
       <div class="flex items-center space-x-2">
         <span class="text-2xl">🎮</span>
@@ -18,27 +20,38 @@
         </h1>
       </div>
       <nav class="flex items-center space-x-4 md:space-x-6 text-xs md:text-sm font-semibold whitespace-nowrap">
-        <a href="index.html" class="text-orange-400 border-b-2 border-orange-400 pb-1 transition-all duration-300 ease-in-out">Dashboard</a>
-        <a href="register.html" class="text-slate-400 hover:text-orange-400 hover:scale-105 transition-all duration-300 ease-in-out">Team Register</a>
-        <a href="profile.html" class="text-slate-400 hover:text-orange-400 hover:scale-105 transition-all duration-300 ease-in-out">Player Stats</a>
-        <a href="admin.html" class="bg-orange-600/20 text-orange-400 hover:bg-orange-600 hover:text-white px-3 py-1 rounded-lg border border-orange-500/30 transition-all duration-300">🔑 Admin Login</a>
+        <a href="index.html"
+          class="text-orange-400 border-b-2 border-orange-400 pb-1 transition-all duration-300 ease-in-out">Dashboard</a>
+        <a href="register.html"
+          class="text-slate-400 hover:text-orange-400 hover:scale-105 transition-all duration-300 ease-in-out">Team
+          Register</a>
+        <a href="profile.html"
+          class="text-slate-400 hover:text-orange-400 hover:scale-105 transition-all duration-300 ease-in-out">Player
+          Stats</a>
+        <a href="admin.html"
+          class="bg-orange-600/20 text-orange-400 hover:bg-orange-600 hover:text-white px-3 py-1 rounded-lg border border-orange-500/30 transition-all duration-300">🔑
+          Admin Login</a>
       </nav>
     </header>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <div class="bg-slate-800 p-5 rounded-xl border border-orange-500/30 shadow-lg transition-transform duration-300 hover:-translate-y-1">
+      <div
+        class="bg-slate-800 p-5 rounded-xl border border-orange-500/30 shadow-lg transition-transform duration-300 hover:-translate-y-1">
         <p class="text-xs text-slate-400 font-bold uppercase tracking-wider">Active Tournament</p>
         <h2 id="bannerTitle" class="text-xl font-extrabold text-orange-400 mt-1">Loading...</h2>
-        <span id="bannerMode" class="inline-block mt-2 text-[10px] bg-cyan-900 text-cyan-200 font-bold px-2.5 py-0.5 rounded uppercase">SQUAD</span>
+        <span id="bannerMode"
+          class="inline-block mt-2 text-[10px] bg-cyan-900 text-cyan-200 font-bold px-2.5 py-0.5 rounded uppercase">SQUAD</span>
       </div>
 
-      <div class="bg-slate-800 p-5 rounded-xl border border-amber-500/30 shadow-lg transition-transform duration-300 hover:-translate-y-1">
+      <div
+        class="bg-slate-800 p-5 rounded-xl border border-amber-500/30 shadow-lg transition-transform duration-300 hover:-translate-y-1">
         <p class="text-xs text-slate-400 font-bold uppercase tracking-wider">Total Prize Pool</p>
         <h2 id="bannerPrize" class="text-2xl font-black text-amber-400 mt-1">₹0</h2>
         <p id="bannerFee" class="text-xs text-slate-400 mt-1">Entry Fee: ₹0</p>
       </div>
 
-      <div class="bg-slate-800 p-5 rounded-xl border border-emerald-500/30 shadow-lg transition-transform duration-300 hover:-translate-y-1">
+      <div
+        class="bg-slate-800 p-5 rounded-xl border border-emerald-500/30 shadow-lg transition-transform duration-300 hover:-translate-y-1">
         <p class="text-xs text-slate-400 font-bold uppercase tracking-wider">Registered Squads</p>
         <h2 id="bannerCount" class="text-2xl font-black text-emerald-400 mt-1">0 Teams</h2>
         <p id="bannerSlots" class="text-xs text-slate-400 mt-1">Max Slots: 25</p>
@@ -50,7 +63,8 @@
         <h2 class="text-xl font-bold text-cyan-400 flex items-center gap-2">
           📋 Registered Squads & Reserved Slots
         </h2>
-        <button onclick="loadRegisteredTeams()" class="px-3 py-1 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded text-xs transition-all duration-300 ease-in-out active:scale-95">
+        <button onclick="loadRegisteredTeams()"
+          class="px-3 py-1 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded text-xs transition-all duration-300 ease-in-out active:scale-95">
           🔄 Refresh Teams
         </button>
       </div>
@@ -63,7 +77,7 @@
               <th class="py-3 px-4">Team Name</th>
               <th class="py-3 px-4">Captain (IGN)</th>
               <th class="py-3 px-4">Captain UID</th>
-              <th class="py-3 px-4">Players Count</th>
+              <th class="py-3 px-4">UTR / Transaction ID</th>
             </tr>
           </thead>
           <tbody id="registeredTeamsBody" class="divide-y divide-slate-700 text-slate-200">
@@ -80,7 +94,8 @@
         <h2 class="text-xl font-bold text-amber-400 flex items-center gap-2">
           🏆 Live Tournament Leaderboard
         </h2>
-        <button onclick="fetchLeaderboard()" class="px-3 py-1 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded text-xs transition-all duration-300 ease-in-out active:scale-95">
+        <button onclick="fetchLeaderboard()"
+          class="px-3 py-1 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded text-xs transition-all duration-300 ease-in-out active:scale-95">
           🔄 Refresh Leaderboard
         </button>
       </div>
@@ -112,11 +127,11 @@
       try {
         const res = await fetch('/api/tournaments/active');
         const data = await res.json();
-        
+
         if (data.success && data.tournament) {
           const t = data.tournament;
           currentTournamentId = t._id;
-          
+
           document.getElementById('bannerTitle').innerText = t.title || "BGMI Tournament";
           document.getElementById('bannerMode').innerText = t.mode || "SQUAD";
           document.getElementById('bannerPrize').innerText = `₹${t.prizePool || 0}`;
@@ -142,14 +157,14 @@
         if (data.success && data.teams && data.teams.length > 0) {
           document.getElementById('bannerCount').innerText = `${data.teams.length} Teams`;
           bodyEl.innerHTML = data.teams.map((team) => `
-            <tr class="hover:bg-slate-750 transition-colors duration-200">
-              <td class="py-3 px-4 font-bold text-orange-400">Slot #${team.slotNumber}</td>
-              <td class="py-3 px-4 font-semibold text-white">${team.teamName}</td>
-              <td class="py-3 px-4 text-amber-300 font-medium">${team.captain?.ign || 'N/A'}</td>
-              <td class="py-3 px-4 font-mono text-slate-400 text-xs">${team.captain?.bgmiUid || 'N/A'}</td>
-              <td class="py-3 px-4"><span class="bg-cyan-900 text-cyan-200 text-xs px-2 py-0.5 rounded font-bold">${(team.members?.length || 0)} Players</span></td>
-            </tr>
-          `).join('');
+  <tr class="hover:bg-slate-750 transition-colors duration-200">
+    <td class="py-3 px-4 font-bold text-orange-400">Slot #${team.slotNumber}</td>
+    <td class="py-3 px-4 font-semibold text-white">${team.teamName}</td>
+    <td class="py-3 px-4 text-amber-300 font-medium">${team.captain?.ign || 'N/A'}</td>
+    <td class="py-3 px-4 font-mono text-slate-400 text-xs">${team.captain?.bgmiUid || 'N/A'}</td>
+    <td class="py-3 px-4"><span class="bg-emerald-900/80 text-emerald-300 text-xs px-2.5 py-1 rounded font-mono font-bold">${team.transactionId || 'FREE'}</span></td>
+  </tr>
+`).join('');
         } else {
           document.getElementById('bannerCount').innerText = "0 Teams";
           bodyEl.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-slate-500 italic">No registered teams found.</td></tr>`;
@@ -184,4 +199,5 @@
     window.onload = initDashboard;
   </script>
 </body>
+
 </html>

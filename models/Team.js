@@ -1,18 +1,19 @@
 const mongoose = require('mongoose');
 
-const playerSchema = new mongoose.Schema({
-  ign: { type: String, required: true },
-  bgmiUid: { type: String, required: true }
-});
-
 const teamSchema = new mongoose.Schema({
-  tournamentId: { type: String, required: true },
+  tournamentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Tournament', required: true },
   teamName: { type: String, required: true },
   slotNumber: { type: Number, required: true },
-  captain: playerSchema,
-  members: [playerSchema], // Stores Player 2, Player 3, Player 4
-  paymentStatus: { type: String, enum: ['PENDING', 'PAID'], default: 'PENDING' },
-  createdAt: { type: Date, default: Date.now }
-});
+  captain: {
+    ign: { type: String, required: true },
+    bgmiUid: { type: String, required: true }
+  },
+  members: [{
+    ign: { type: String },
+    bgmiUid: { type: String }
+  }],
+  paymentStatus: { type: String, enum: ['PENDING', 'PAID'], default: 'PAID' },
+  transactionId: { type: String, default: 'FREE' } // 12-Digit UTR / Transaction ID
+}, { timestamps: true });
 
 module.exports = mongoose.model('Team', teamSchema);
