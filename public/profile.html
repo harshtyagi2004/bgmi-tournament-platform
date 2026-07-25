@@ -14,7 +14,8 @@
       <h1 class="text-2xl font-bold text-orange-500">🎮 PLAYER RESUME</h1>
       <nav class="space-x-4 text-sm font-semibold">
         <a href="index.html" class="text-slate-400 hover:text-orange-400">Dashboard</a>
-        <a href="register.html" class="text-slate-400 hover:text-orange-400">Register Team</a>
+        <a href="create-tournament.html" class="text-slate-400 hover:text-orange-400">Create Tournament</a>
+        <a href="register.html" class="text-slate-400 hover:text-orange-400">Team Register</a>
         <a href="profile.html" class="text-orange-400 border-b-2 border-orange-400 pb-1">Player Resume</a>
       </nav>
     </header>
@@ -46,18 +47,18 @@
         </div>
       </div>
 
-      <div class="grid grid-cols-3 gap-4 text-center">
-        <div class="bg-slate-900 p-4 rounded-lg border border-slate-700">
-          <p class="text-xs text-slate-400">Tournaments</p>
-          <p id="statTournaments" class="text-xl font-black text-amber-400 mt-1">0</p>
+      <div class="bg-slate-900 p-4 rounded-xl border border-slate-700 flex justify-between items-center divide-x divide-slate-700 text-center">
+        <div class="flex-1 px-2">
+          <p class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Tournaments</p>
+          <p id="statTournaments" class="text-xl md:text-2xl font-black text-amber-400 mt-1">0</p>
         </div>
-        <div class="bg-slate-900 p-4 rounded-lg border border-slate-700">
-          <p class="text-xs text-slate-400">Total Kills</p>
-          <p id="statKills" class="text-xl font-black text-rose-400 mt-1">0</p>
+        <div class="flex-1 px-2">
+          <p class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Total Kills</p>
+          <p id="statKills" class="text-xl md:text-2xl font-black text-rose-400 mt-1">0</p>
         </div>
-        <div class="bg-slate-900 p-4 rounded-lg border border-slate-700">
-          <p class="text-xs text-slate-400">Matches Won</p>
-          <p id="statWins" class="text-xl font-black text-emerald-400 mt-1">0</p>
+        <div class="flex-1 px-2">
+          <p class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Matches Won</p>
+          <p id="statWins" class="text-xl md:text-2xl font-black text-emerald-400 mt-1">0</p>
         </div>
       </div>
     </div>
