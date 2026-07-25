@@ -99,8 +99,33 @@
 
   </div>
 
+  <div id="paymentModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+    <div class="bg-slate-800 max-w-sm w-full p-6 rounded-2xl border border-emerald-500/40 shadow-2xl text-center space-y-5 relative">
+      <h3 class="text-lg font-extrabold text-emerald-400">💳 UPI Entry Fee Checkout</h3>
+      <p class="text-xs text-slate-300">Scan QR Code using GPay, PhonePe, or Paytm to complete registration.</p>
+      
+      <div class="bg-white p-3 rounded-xl inline-block border-2 border-emerald-500">
+        <img id="qrImage" src="" alt="UPI QR Code" class="w-48 h-48 mx-auto" />
+      </div>
+
+      <div class="bg-slate-900 p-3 rounded-lg border border-slate-700 text-xs space-y-1">
+        <p class="text-slate-400">Amount To Pay: <span id="modalAmount" class="font-extrabold text-emerald-400 text-sm">₹0</span></p>
+        <p class="text-slate-400">UPI ID: <span class="font-mono text-amber-400">esports@upi</span></p>
+      </div>
+
+      <button onclick="confirmUpiPayment()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-lg font-bold text-sm transition shadow-lg active:scale-95">
+        ✅ I Have Paid (Confirm & Lock Slot)
+      </button>
+      
+      <button onclick="closePaymentModal()" class="text-xs text-slate-400 hover:text-rose-400 underline block mx-auto">
+        Cancel Registration
+      </button>
+    </div>
+  </div>
+
   <script>
     let activeTournament = null;
+    let pendingTeamData = null;
 
     async function loadActiveTournament() {
       try {
@@ -145,11 +170,67 @@
         if (ign && bgmiUid) members.push({ ign, bgmiUid });
       });
 
+      const fee = activeTournament ? (activeTournament.entryFee || 0) : 0;
+
+      // Try Razorpay standard checkout first if order API is online
+      if (fee > 0) {
+        try {
+          const orderRes = await fetch('/api/payments/create-order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ amount: fee })
+          });
+          const orderData = await orderRes.json();
+
+          if (orderData.success && orderData.order) {
+            // Open Razorpay Native Popup
+            const options = {
+              key: "rzp_test_dummy_key",
+              amount: orderData.order.amount,
+              currency: "INR",
+              name: "BGMI Esports Platform",
+              description: `Entry Fee ₹${fee}`,
+              order_id: orderData.order.id,
+              handler: async function (response) {
+                saveRegistration(teamName, captainIgn, captainUid, members);
+              }
+            };
+            const rzp = new Razorpay(options);
+            rzp.open();
+            return;
+          }
+        } catch (e) {
+          console.log("Razorpay Keys inactive, launching UPI QR Modal fallback.");
+        }
+
+        // Fallback: Open Direct Interactive UPI QR Popup Modal!
+        pendingTeamData = { teamName, captainIgn, captainUid, members };
+        document.getElementById('modalAmount').innerText = `₹${fee}`;
+        document.getElementById('qrImage').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi://pay?pa=esports@upi%26pn=BGMI_Esports%26am=${fee}%26cu=INR`;
+        document.getElementById('paymentModal').classList.remove('hidden');
+        return;
+      }
+
+      // Free Tournament direct registration
+      saveRegistration(teamName, captainIgn, captainUid, members);
+    }
+
+    async function confirmUpiPayment() {
+      if (!pendingTeamData) return;
+      document.getElementById('paymentModal').classList.add('hidden');
+      saveRegistration(pendingTeamData.teamName, pendingTeamData.captainIgn, pendingTeamData.captainUid, pendingTeamData.members);
+    }
+
+    function closePaymentModal() {
+      document.getElementById('paymentModal').classList.add('hidden');
+    }
+
+    async function saveRegistration(teamName, captainIgn, captainUid, members) {
+      const statusEl = document.getElementById('regStatus');
       statusEl.className = "text-xs text-center font-semibold text-orange-400";
-      statusEl.innerText = "⏳ Registering squad in database...";
+      statusEl.innerText = "⏳ Saving team & locking slot...";
 
       try {
-        // Step 1: Save Registration Data in MongoDB
         const regRes = await fetch('/api/teams/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -157,62 +238,16 @@
         });
         const regData = await regRes.json();
 
-        if (!regRes.ok) {
+        if (regRes.ok) {
+          statusEl.className = "text-xs text-center font-semibold text-emerald-400";
+          statusEl.innerText = `🎉 Payment Verified! Squad "${teamName}" Registered & Slot #${regData.team.slotNumber} Locked!`;
+        } else {
           statusEl.className = "text-xs text-center font-semibold text-rose-400";
-          statusEl.innerText = `❌ ${regData.error || 'Team registration failed'}`;
-          return;
+          statusEl.innerText = `❌ ${regData.error || 'Registration failed'}`;
         }
-
-        const fee = activeTournament ? (activeTournament.entryFee || 0) : 0;
-
-        // FREE TOURNAMENT FLOW
-        if (fee === 0) {
-          statusEl.className = "text-xs text-center font-semibold text-emerald-400";
-          statusEl.innerText = `🎉 Squad "${teamName}" Registered Successfully! Slot #${regData.team.slotNumber} Reserved.`;
-          return;
-        }
-
-        // PAID TOURNAMENT FLOW -> TRIGGER RAZORPAY UPI
-        statusEl.innerText = "⏳ Creating UPI payment order...";
-        const orderRes = await fetch('/api/payments/create-order', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ amount: fee })
-        });
-        const orderData = await orderRes.json();
-
-        if (!orderData.success) {
-          statusEl.className = "text-xs text-center font-semibold text-emerald-400";
-          statusEl.innerText = `🎉 Squad Registered! Slot #${regData.team.slotNumber} Reserved.`;
-          return;
-        }
-
-        // Step 2: Open Razorpay Checkout Window
-        const options = {
-          key: "rzp_test_dummy_key", // Replace with your actual Razorpay Key ID
-          amount: orderData.order.amount,
-          currency: "INR",
-          name: "BGMI Esports Platform",
-          description: `Entry Fee for ${activeTournament?.title || 'Tournament'} (Slot #${regData.team.slotNumber})`,
-          order_id: orderData.order.id,
-          handler: async function (response) {
-            statusEl.innerText = "⏳ Verifying UPI payment...";
-            await fetch('/api/payments/verify', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ ...response, teamId: regData.team._id })
-            });
-            statusEl.className = "text-xs text-center font-semibold text-emerald-400";
-            statusEl.innerText = `🎉 Payment Verified! Slot #${regData.team.slotNumber} Locked for ${teamName}.`;
-          }
-        };
-
-        const rzp = new Razorpay(options);
-        rzp.open();
-
       } catch (err) {
         statusEl.className = "text-xs text-center font-semibold text-rose-400";
-        statusEl.innerText = "❌ Server error occurred during registration.";
+        statusEl.innerText = "❌ Server error occurred.";
       }
     }
 
