@@ -1,29 +1,23 @@
+const { sendRoomCredentials } = require('../services/discordBot');
 const Tournament = require('../models/Tournament');
-const { announceRoomDetails } = require('../services/discordBot');
 
 exports.broadcastRoom = async (req, res) => {
   try {
-    const { tournamentId, roomId, password } = req.body;
+    const { roomId, roomPassword } = req.body;
 
-    const tournament = await Tournament.findByIdAndUpdate(
-      tournamentId,
-      { 'roomDetails.roomId': roomId, 'roomDetails.password': password, status: 'LIVE' },
-      { new: true }
-    );
-
-    if (!tournament) {
-      return res.status(404).json({ success: false, error: 'Tournament record not found' });
+    if (!roomId || !roomPassword) {
+      return res.status(400).json({ success: false, error: "Room ID and Password are required!" });
     }
 
-    const channelId = process.env.DISCORD_CHANNEL_ID || '1234567890';
-    await announceRoomDetails(channelId, tournament.title, roomId, password);
+    // Attempt to broadcast using discordBot service
+    await sendRoomCredentials(roomId, roomPassword);
 
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
-      message: 'Room credentials updated and dispatched to integration channels.',
-      tournament
+      message: "Room credentials broadcasted successfully to Discord & WhatsApp!"
     });
-  } catch (error) {
-    return res.status(500).json({ success: false, error: error.message });
+  } catch (err) {
+    console.error("Broadcast Error:", err.message);
+    res.status(500).json({ success: false, error: err.message });
   }
 };
