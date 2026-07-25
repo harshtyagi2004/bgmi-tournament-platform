@@ -7,12 +7,15 @@ const razorpay = new Razorpay({
   key_secret: process.env.RAZORPAY_KEY_SECRET || 'dummy_secret'
 });
 
-// Create Order for Entry Fee
+// Create Order for Custom User Entered Amount
 exports.createOrder = async (req, res) => {
   try {
-    const { amount } = req.body; // Amount in Rupees
+    const { amount } = req.body; // Custom Amount entered by user
+
+    const finalAmount = amount && Number(amount) > 0 ? Number(amount) : 50;
+
     const options = {
-      amount: (amount || 50) * 100, // Razorpay takes amount in paise
+      amount: finalAmount * 100, // Convert Rupees to Paise
       currency: "INR",
       receipt: `receipt_${Date.now()}`
     };
@@ -36,7 +39,6 @@ exports.verifyPayment = async (req, res) => {
       .digest('hex');
 
     if (expectedSignature === razorpay_signature || process.env.NODE_ENV !== 'production') {
-      // Payment Verified -> Update Team Status to PAID
       const updatedTeam = await Team.findByIdAndUpdate(
         teamId,
         { paymentStatus: 'PAID' },
