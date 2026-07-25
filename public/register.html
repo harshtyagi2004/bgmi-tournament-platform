@@ -3,36 +3,39 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BGMI Squad Registration & Custom Payment</title>
+  <title>BGMI Team Registration</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen p-4 md:p-8 font-sans">
 
   <div class="max-w-3xl mx-auto space-y-6">
     
     <header class="flex justify-between items-center border-b border-slate-700 pb-4">
-      <h1 class="text-2xl font-bold text-orange-500">📝 BGMI SQUAD REGISTRATION</h1>
+      <h1 class="text-2xl font-bold text-orange-500">📝 TEAM REGISTRATION</h1>
       <nav class="space-x-4 text-sm font-semibold">
         <a href="index.html" class="text-slate-400 hover:text-orange-400">Dashboard</a>
-        <a href="register.html" class="text-orange-400 border-b-2 border-orange-400 pb-1">Register Squad</a>
+        <a href="create-tournament.html" class="text-slate-400 hover:text-orange-400">Create Tournament</a>
+        <a href="register.html" class="text-orange-400 border-b-2 border-orange-400 pb-1">Team Register</a>
         <a href="profile.html" class="text-slate-400 hover:text-orange-400">Player Resume</a>
       </nav>
     </header>
 
+    <div id="tournamentBanner" class="bg-slate-800/80 p-4 rounded-xl border border-orange-500/30 flex justify-between items-center">
+      <div>
+        <p class="text-xs text-slate-400 font-bold uppercase tracking-wider">Active Tournament</p>
+        <h2 id="activeTourneyTitle" class="text-lg font-bold text-orange-400">Loading Active Tournament...</h2>
+      </div>
+      <div class="text-right">
+        <span id="activeTourneyMode" class="text-xs font-extrabold bg-cyan-900 text-cyan-200 px-3 py-1 rounded-full uppercase">SQUAD</span>
+      </div>
+    </div>
+
     <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg space-y-6">
       
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div class="md:col-span-2">
-          <label class="text-xs font-bold text-orange-400 uppercase tracking-wider">Team Name *</label>
-          <input id="teamName" type="text" placeholder="e.g. GodLike Esports" 
-            class="w-full p-3 mt-1 bg-slate-900 rounded-lg border border-slate-700 text-white focus:outline-none focus:border-orange-500 text-sm" />
-        </div>
-        <div>
-          <label class="text-xs font-bold text-emerald-400 uppercase tracking-wider">Entry Fee Amount (₹) *</label>
-          <input id="entryAmount" type="number" placeholder="Enter Amount (e.g. 100)" value="50" min="0" 
-            class="w-full p-3 mt-1 bg-slate-900 rounded-lg border border-slate-700 text-white focus:outline-none focus:border-emerald-500 text-sm font-bold" />
-        </div>
+      <div>
+        <label class="text-xs font-bold text-orange-400 uppercase tracking-wider">Team Name *</label>
+        <input id="teamName" type="text" placeholder="e.g. GodLike Esports" 
+          class="w-full p-3 mt-1 bg-slate-900 rounded-lg border border-slate-700 text-white focus:outline-none focus:border-orange-500 text-sm" />
       </div>
 
       <div class="bg-slate-900/60 p-4 rounded-lg border border-slate-700/80 space-y-3">
@@ -88,9 +91,9 @@
         </div>
       </div>
 
-      <button onclick="registerAndPay()" 
+      <button onclick="registerSquad()" 
         class="w-full bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white p-3.5 rounded-lg font-bold transition shadow-lg active:scale-95 text-base">
-        💳 Pay & Lock Squad Slot
+        🚀 Register Team & Reserve Slot
       </button>
 
       <p id="regStatus" class="text-xs text-center h-4 font-semibold mt-2"></p>
@@ -99,22 +102,34 @@
   </div>
 
   <script>
-    async function registerAndPay() {
+    let activeTournament = null;
+
+    async function loadActiveTournament() {
+      try {
+        const res = await fetch('/api/tournaments/active');
+        const data = await res.json();
+        
+        if (data.success && data.tournament) {
+          activeTournament = data.tournament;
+          document.getElementById('activeTourneyTitle').innerText = activeTournament.title || "BGMI Championship";
+          document.getElementById('activeTourneyMode').innerText = activeTournament.mode || "SQUAD";
+        } else {
+          document.getElementById('activeTourneyTitle').innerText = "No Active Tournament Found";
+        }
+      } catch (err) {
+        console.warn("Could not load active tournament:", err);
+      }
+    }
+
+    async function registerSquad() {
       const teamName = document.getElementById('teamName').value.trim();
-      const entryAmount = Number(document.getElementById('entryAmount').value);
       const captainIgn = document.getElementById('captainIgn').value.trim();
       const captainUid = document.getElementById('captainUid').value.trim();
       const statusEl = document.getElementById('regStatus');
 
       if (!teamName || !captainIgn || !captainUid) {
         statusEl.className = "text-xs text-center font-semibold text-rose-400";
-        statusEl.innerText = "❌ Team Name and Captain Details are required!";
-        return;
-      }
-
-      if (isNaN(entryAmount) || entryAmount < 0) {
-        statusEl.className = "text-xs text-center font-semibold text-rose-400";
-        statusEl.innerText = "❌ Please enter a valid payment amount!";
+        statusEl.innerText = "❌ Team Name & Captain Details are required!";
         return;
       }
 
@@ -129,72 +144,38 @@
       });
 
       statusEl.className = "text-xs text-center font-semibold text-orange-400";
-      statusEl.innerText = "⏳ Registering squad & creating payment gateway request...";
+      statusEl.innerText = "⏳ Registering team & securing slot...";
 
       try {
-        // Step 1: Register Squad
         const regRes = await fetch('/api/teams/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ teamName, captainIgn, captainUid, members })
+          body: JSON.stringify({ 
+            teamName, 
+            captainIgn, 
+            captainUid, 
+            members, 
+            tournamentId: activeTournament?._id 
+          })
         });
         const regData = await regRes.json();
 
         if (!regRes.ok) {
           statusEl.className = "text-xs text-center font-semibold text-rose-400";
-          statusEl.innerText = `❌ ${regData.error || 'Squad registration failed'}`;
+          statusEl.innerText = `❌ ${regData.error || 'Team registration failed'}`;
           return;
         }
 
-        // Free Tournament Case
-        if (entryAmount === 0) {
-          statusEl.className = "text-xs text-center font-semibold text-emerald-400";
-          statusEl.innerText = `🎉 Free Tournament Registered! Slot Allocated: #${regData.team.slotNumber}`;
-          return;
-        }
-
-        // Step 2: Create Custom Razorpay Order
-        const orderRes = await fetch('/api/payments/create-order', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ amount: entryAmount })
-        });
-        const orderData = await orderRes.json();
-
-        if (!orderData.success) {
-          statusEl.className = "text-xs text-center font-semibold text-emerald-400";
-          statusEl.innerText = `🎉 Squad Registered! Slot #${regData.team.slotNumber} Reserved.`;
-          return;
-        }
-
-        // Step 3: Trigger Razorpay Modal
-        const options = {
-          key: "rzp_test_dummy_key",
-          amount: orderData.order.amount,
-          currency: "INR",
-          name: "BGMI Esports Platform",
-          description: `Entry Fee ₹${entryAmount} for Slot #${regData.team.slotNumber}`,
-          order_id: orderData.order.id,
-          handler: async function (response) {
-            statusEl.innerText = "⏳ Verifying payment status...";
-            await fetch('/api/payments/verify', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ ...response, teamId: regData.team._id })
-            });
-            statusEl.className = "text-xs text-center font-semibold text-emerald-400";
-            statusEl.innerText = `🎉 Payment Verified! Slot #${regData.team.slotNumber} Locked for ${teamName}.`;
-          }
-        };
-
-        const rzp = new Razorpay(options);
-        rzp.open();
+        statusEl.className = "text-xs text-center font-semibold text-emerald-400";
+        statusEl.innerText = `🎉 Team "${teamName}" Registered Successfully! Assigned Slot: #${regData.team.slotNumber}`;
 
       } catch (err) {
         statusEl.className = "text-xs text-center font-semibold text-rose-400";
         statusEl.innerText = "❌ Server error occurred during registration.";
       }
     }
+
+    window.onload = loadActiveTournament;
   </script>
 </body>
 </html>

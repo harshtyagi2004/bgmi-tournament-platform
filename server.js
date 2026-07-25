@@ -4,6 +4,7 @@ const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
+const mongoose = require('mongoose');
 
 // --- DATABASE & CACHE CONFIGURATIONS ---
 const connectDB = require('./config/db');
@@ -19,6 +20,7 @@ const { createOrder, verifyPayment } = require('./controllers/paymentController'
 // --- MONGOOSE MODELS ---
 const Team = require('./models/Team');
 const User = require('./models/User');
+const Tournament = require('./models/Tournament');
 
 const app = express();
 
@@ -32,34 +34,68 @@ const upload = multer({ dest: uploadDir });
 // --- MIDDLEWARE ---
 app.use(cors());
 app.use(express.json());
-app.use(express.static('public')); // Serve frontend files from /public directory
+app.use(express.static('public')); // Serve static frontend HTML files
 
 let ACTIVE_TOURNAMENT_ID = null;
 
 // ==========================================
-// 🚀 API ROUTES & ENDPOINTS
+// 🚀 TOURNAMENT & ORGANIZER API ROUTES
 // ==========================================
 
-// 1. ACTIVE TOURNAMENT ID HELPER
-app.get('/api/tournaments/active', (req, res) => {
-  res.status(200).json({ success: true, tournamentId: ACTIVE_TOURNAMENT_ID });
+// 1. CREATE & PUBLISH NEW TOURNAMENT
+app.post('/api/tournaments/create', async (req, res) => {
+  try {
+    const { title, mode, entryFee, prizePool, maxSlots, registrationDeadline, schedule } = req.body;
+
+    if (!title) {
+      return res.status(400).json({ success: false, error: "Tournament Title is required!" });
+    }
+
+    const newTournament = new Tournament({
+      title,
+      mode: mode || "SQUAD",
+      entryFee: Number(entryFee) || 0,
+      prizePool: Number(prizePool) || 0,
+      maxSlots: Number(maxSlots) || 25,
+      registrationDeadline: registrationDeadline ? new Date(registrationDeadline) : null,
+      schedule: schedule ? new Date(schedule) : null,
+      status: "UPCOMING",
+      organizerId: new mongoose.Types.ObjectId()
+    });
+
+    await newTournament.save();
+
+    // Automatically set newly created tournament as active
+    ACTIVE_TOURNAMENT_ID = newTournament._id.toString();
+
+    res.status(200).json({
+      success: true,
+      message: `Tournament "${title}" Created Successfully! Set as Active Tournament.`,
+      tournament: newTournament
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
-// 2. OCR SCREENSHOT UPLOAD & SCORE PARSING
-app.post('/api/tournaments/upload-score-ocr', upload.single('screenshot'), processScoreScreenshot);
+// 2. FETCH ACTIVE TOURNAMENT DETAILS
+app.get('/api/tournaments/active', async (req, res) => {
+  try {
+    if (!ACTIVE_TOURNAMENT_ID) {
+      return res.status(200).json({ success: true, tournament: null });
+    }
+    const tournament = await Tournament.findById(ACTIVE_TOURNAMENT_ID);
+    res.status(200).json({ success: true, tournamentId: ACTIVE_TOURNAMENT_ID, tournament });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 
-// 3. DISCORD & WHATSAPP ROOM DISPATCHER
-app.post('/api/tournaments/broadcast-room', broadcastRoom);
+// ==========================================
+// 👥 TEAM REGISTRATION & SLOT ALLOCATION
+// ==========================================
 
-// 4. LEADERBOARD & MATCH SCORE ENTRY
-app.post('/api/tournaments/score', submitMatchScore);
-app.get('/api/tournaments/:tournamentId/leaderboard', getLiveLeaderboard);
-
-// 5. RAZORPAY PAYMENT & SLOT LOCKING
-app.post('/api/payments/create-order', createOrder);
-app.post('/api/payments/verify', verifyPayment);
-
-// 6. FULL 4-PLAYER SQUAD REGISTRATION API
+// 3. REGISTER TEAM / SQUAD (DIRECT SLOT RESERVATION)
 app.post('/api/teams/register', async (req, res) => {
   try {
     const { teamName, captainIgn, captainUid, members } = req.body;
@@ -73,7 +109,7 @@ app.post('/api/teams/register', async (req, res) => {
       return res.status(400).json({ success: false, error: "Team Name and Captain details are required!" });
     }
 
-    // Collect all UIDs provided across Captain + Members
+    // Collect all UIDs provided across Captain + Members (Player 2 to Player 5)
     const allSquadUids = [captainUid, ...(members ? members.map(m => m.bgmiUid) : [])].filter(Boolean);
 
     // Duplicate Check: Verify if any provided UID is already registered
@@ -129,7 +165,7 @@ app.post('/api/teams/register', async (req, res) => {
 
     res.status(200).json({ 
       success: true, 
-      message: `Squad Registered Successfully! Slot #${assignedSlot} Locked.`, 
+      message: `Squad "${teamName}" Registered Successfully! Slot #${assignedSlot} Reserved.`, 
       team: newTeam 
     });
   } catch (err) {
@@ -137,7 +173,25 @@ app.post('/api/teams/register', async (req, res) => {
   }
 });
 
-// 7. FETCH PLAYER GAMING RESUME PROFILE
+// ==========================================
+// 📷 OCR & BROADCAST DISPATCHER APIS
+// ==========================================
+
+// 4. OCR SCREENSHOT UPLOAD & SCORE PARSING
+app.post('/api/tournaments/upload-score-ocr', upload.single('screenshot'), processScoreScreenshot);
+
+// 5. DISCORD & WHATSAPP ROOM DISPATCHER
+app.post('/api/tournaments/broadcast-room', broadcastRoom);
+
+// 6. LEADERBOARD & MATCH SCORE ENTRY
+app.post('/api/tournaments/score', submitMatchScore);
+app.get('/api/tournaments/:tournamentId/leaderboard', getLiveLeaderboard);
+
+// 7. OPTIONAL RAZORPAY PAYMENT ENDPOINTS
+app.post('/api/payments/create-order', createOrder);
+app.post('/api/payments/verify', verifyPayment);
+
+// 8. FETCH PLAYER GAMING RESUME PROFILE
 app.get('/api/players/:uid', async (req, res) => {
   try {
     const { uid } = req.params;
@@ -158,11 +212,11 @@ app.get('/api/players/:uid', async (req, res) => {
 // ==========================================
 const startServer = async () => {
   try {
-    // Connect DB before taking requests
+    // Connect DB before accepting incoming HTTP requests
     await connectDB();
     ACTIVE_TOURNAMENT_ID = await ensureActiveTournament();
 
-    // Optional Redis Caching
+    // Optional Redis Connection
     redis.connect().catch(() => {
       console.warn("⚠️ Redis is offline. Running with fallback DB queries.");
     });
