@@ -34,7 +34,7 @@ const upload = multer({ dest: uploadDir });
 // --- MIDDLEWARE ---
 app.use(cors());
 app.use(express.json());
-app.use(express.static('public')); // Serve static frontend HTML files
+app.use(express.static('public')); // Serves frontend HTML files from /public directory
 
 let ACTIVE_TOURNAMENT_ID = null;
 
@@ -42,7 +42,20 @@ let ACTIVE_TOURNAMENT_ID = null;
 // 🚀 TOURNAMENT & ORGANIZER API ROUTES
 // ==========================================
 
-// 1. CREATE & PUBLISH NEW TOURNAMENT
+// 1. FETCH ACTIVE TOURNAMENT DETAILS
+app.get('/api/tournaments/active', async (req, res) => {
+  try {
+    if (!ACTIVE_TOURNAMENT_ID) {
+      return res.status(200).json({ success: true, tournament: null });
+    }
+    const tournament = await Tournament.findById(ACTIVE_TOURNAMENT_ID);
+    res.status(200).json({ success: true, tournamentId: ACTIVE_TOURNAMENT_ID, tournament });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 2. CREATE & PUBLISH NEW TOURNAMENT
 app.post('/api/tournaments/create', async (req, res) => {
   try {
     const { title, mode, entryFee, prizePool, maxSlots, registrationDeadline, schedule } = req.body;
@@ -65,7 +78,7 @@ app.post('/api/tournaments/create', async (req, res) => {
 
     await newTournament.save();
 
-    // Automatically set newly created tournament as active
+    // Set newly created tournament as the active tournament
     ACTIVE_TOURNAMENT_ID = newTournament._id.toString();
 
     res.status(200).json({
@@ -78,14 +91,14 @@ app.post('/api/tournaments/create', async (req, res) => {
   }
 });
 
-// 2. FETCH ACTIVE TOURNAMENT DETAILS
-app.get('/api/tournaments/active', async (req, res) => {
+// 3. FETCH ALL REGISTERED TEAMS FOR DASHBOARD
+app.get('/api/tournaments/teams', async (req, res) => {
   try {
     if (!ACTIVE_TOURNAMENT_ID) {
-      return res.status(200).json({ success: true, tournament: null });
+      return res.status(200).json({ success: true, teams: [] });
     }
-    const tournament = await Tournament.findById(ACTIVE_TOURNAMENT_ID);
-    res.status(200).json({ success: true, tournamentId: ACTIVE_TOURNAMENT_ID, tournament });
+    const teams = await Team.find({ tournamentId: ACTIVE_TOURNAMENT_ID }).sort({ slotNumber: 1 });
+    res.status(200).json({ success: true, teams });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -95,7 +108,7 @@ app.get('/api/tournaments/active', async (req, res) => {
 // 👥 TEAM REGISTRATION & SLOT ALLOCATION
 // ==========================================
 
-// 3. REGISTER TEAM / SQUAD (DIRECT SLOT RESERVATION)
+// 4. REGISTER TEAM / SQUAD (FULL SQUAD SUPPORT)
 app.post('/api/teams/register', async (req, res) => {
   try {
     const { teamName, captainIgn, captainUid, members } = req.body;
@@ -112,7 +125,7 @@ app.post('/api/teams/register', async (req, res) => {
     // Collect all UIDs provided across Captain + Members (Player 2 to Player 5)
     const allSquadUids = [captainUid, ...(members ? members.map(m => m.bgmiUid) : [])].filter(Boolean);
 
-    // Duplicate Check: Verify if any provided UID is already registered
+    // Duplicate Check: Verify if any provided UID is already registered in this tournament
     const existingTeam = await Team.findOne({
       tournamentId,
       $or: [
@@ -174,24 +187,24 @@ app.post('/api/teams/register', async (req, res) => {
 });
 
 // ==========================================
-// 📷 OCR & BROADCAST DISPATCHER APIS
+// 📷 OCR, DISPATCHER & LEADERBOARD APIS
 // ==========================================
 
-// 4. OCR SCREENSHOT UPLOAD & SCORE PARSING
+// 5. OCR SCREENSHOT UPLOAD & SCORE PARSING
 app.post('/api/tournaments/upload-score-ocr', upload.single('screenshot'), processScoreScreenshot);
 
-// 5. DISCORD & WHATSAPP ROOM DISPATCHER
+// 6. DISCORD & WHATSAPP ROOM DISPATCHER
 app.post('/api/tournaments/broadcast-room', broadcastRoom);
 
-// 6. LEADERBOARD & MATCH SCORE ENTRY
+// 7. LEADERBOARD & MATCH SCORE ENTRY
 app.post('/api/tournaments/score', submitMatchScore);
 app.get('/api/tournaments/:tournamentId/leaderboard', getLiveLeaderboard);
 
-// 7. OPTIONAL RAZORPAY PAYMENT ENDPOINTS
+// 8. RAZORPAY UPI PAYMENT ENDPOINTS
 app.post('/api/payments/create-order', createOrder);
 app.post('/api/payments/verify', verifyPayment);
 
-// 8. FETCH PLAYER GAMING RESUME PROFILE
+// 9. FETCH PLAYER GAMING RESUME PROFILE
 app.get('/api/players/:uid', async (req, res) => {
   try {
     const { uid } = req.params;
@@ -212,11 +225,11 @@ app.get('/api/players/:uid', async (req, res) => {
 // ==========================================
 const startServer = async () => {
   try {
-    // Connect DB before accepting incoming HTTP requests
+    // Connect Database before accepting incoming requests
     await connectDB();
     ACTIVE_TOURNAMENT_ID = await ensureActiveTournament();
 
-    // Optional Redis Connection
+    // Optional Redis Cache Connection
     redis.connect().catch(() => {
       console.warn("⚠️ Redis is offline. Running with fallback DB queries.");
     });

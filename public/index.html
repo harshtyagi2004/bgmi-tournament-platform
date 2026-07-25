@@ -14,15 +14,36 @@
       <div class="flex items-center space-x-3">
         <span class="text-3xl">🎮</span>
         <h1 class="text-2xl md:text-3xl font-extrabold text-orange-500 tracking-wider">
-          BGMI ESPORTS PLATFORM
+          BGMI ESPORTS DASHBOARD
         </h1>
       </div>
       <nav class="flex space-x-6 text-sm font-semibold">
         <a href="index.html" class="text-orange-400 border-b-2 border-orange-400 pb-1">Dashboard</a>
+        <a href="create-tournament.html" class="text-slate-400 hover:text-orange-400 transition">Create Tournament</a>
         <a href="register.html" class="text-slate-400 hover:text-orange-400 transition">Register Team</a>
         <a href="profile.html" class="text-slate-400 hover:text-orange-400 transition">Player Resume</a>
       </nav>
     </header>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="bg-slate-800 p-5 rounded-xl border border-orange-500/30 shadow-lg">
+        <p class="text-xs text-slate-400 font-bold uppercase tracking-wider">Active Tournament</p>
+        <h2 id="bannerTitle" class="text-xl font-extrabold text-orange-400 mt-1">Loading...</h2>
+        <span id="bannerMode" class="inline-block mt-2 text-[10px] bg-cyan-900 text-cyan-200 font-bold px-2.5 py-0.5 rounded uppercase">SQUAD</span>
+      </div>
+
+      <div class="bg-slate-800 p-5 rounded-xl border border-amber-500/30 shadow-lg">
+        <p class="text-xs text-slate-400 font-bold uppercase tracking-wider">Total Prize Pool</p>
+        <h2 id="bannerPrize" class="text-2xl font-black text-amber-400 mt-1">₹0</h2>
+        <p id="bannerFee" class="text-xs text-slate-400 mt-1">Entry Fee: ₹0</p>
+      </div>
+
+      <div class="bg-slate-800 p-5 rounded-xl border border-emerald-500/30 shadow-lg">
+        <p class="text-xs text-slate-400 font-bold uppercase tracking-wider">Registered Squads</p>
+        <h2 id="bannerCount" class="text-2xl font-black text-emerald-400 mt-1">0 Teams</h2>
+        <p id="bannerSlots" class="text-xs text-slate-400 mt-1">Max Slots: 25</p>
+      </div>
+    </div>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
 
@@ -92,11 +113,41 @@
 
     <div class="bg-slate-800 rounded-xl border border-slate-700 shadow-lg p-6 space-y-4">
       <div class="flex justify-between items-center border-b border-slate-700 pb-3">
+        <h2 class="text-xl font-bold text-cyan-400 flex items-center gap-2">
+          📋 Registered Squads & Reserved Slots
+        </h2>
+        <button onclick="loadRegisteredTeams()" class="px-3 py-1 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded text-xs transition flex items-center gap-1">
+          🔄 Refresh Teams
+        </button>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm border-collapse">
+          <thead>
+            <tr class="text-slate-400 border-b border-slate-700 uppercase text-xs tracking-wider">
+              <th class="py-3 px-4">Slot #</th>
+              <th class="py-3 px-4">Team Name</th>
+              <th class="py-3 px-4">Captain (IGN)</th>
+              <th class="py-3 px-4">Captain UID</th>
+              <th class="py-3 px-4">Players Count</th>
+            </tr>
+          </thead>
+          <tbody id="registeredTeamsBody" class="divide-y divide-slate-700 text-slate-200">
+            <tr>
+              <td colspan="5" class="text-center py-6 text-slate-500 italic">No registered teams found.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="bg-slate-800 rounded-xl border border-slate-700 shadow-lg p-6 space-y-4">
+      <div class="flex justify-between items-center border-b border-slate-700 pb-3">
         <h2 class="text-xl font-bold text-amber-400 flex items-center gap-2">
           🏆 Live Tournament Leaderboard
         </h2>
         <button onclick="fetchLeaderboard()" class="px-3 py-1 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded text-xs transition flex items-center gap-1">
-          🔄 Refresh
+          🔄 Refresh Leaderboard
         </button>
       </div>
 
@@ -123,24 +174,60 @@
   <script>
     let currentTournamentId = null;
 
-    // Fetch Active Tournament ID on Load
-    async function initTournament() {
+    async function initDashboard() {
       try {
         const res = await fetch('/api/tournaments/active');
         const data = await res.json();
-        if (data.success && data.tournamentId) {
-          currentTournamentId = data.tournamentId;
+        
+        if (data.success && data.tournament) {
+          const t = data.tournament;
+          currentTournamentId = t._id;
+          
+          document.getElementById('bannerTitle').innerText = t.title || "BGMI Tournament";
+          document.getElementById('bannerMode').innerText = t.mode || "SQUAD";
+          document.getElementById('bannerPrize').innerText = `₹${t.prizePool || 0}`;
+          document.getElementById('bannerFee').innerText = `Entry Fee: ₹${t.entryFee || 0}`;
+          document.getElementById('bannerSlots').innerText = `Max Slots: ${t.maxSlots || 25}`;
+
+          loadRegisteredTeams();
           fetchLeaderboard();
+        } else {
+          document.getElementById('bannerTitle').innerText = "No Active Tournament";
         }
       } catch (err) {
-        console.warn("Could not load active tournament ID:", err);
+        console.warn("Could not init dashboard:", err);
       }
     }
 
-    // 1. Dispatch Room Credentials
+    async function loadRegisteredTeams() {
+      const bodyEl = document.getElementById('registeredTeamsBody');
+      try {
+        const res = await fetch('/api/tournaments/teams');
+        const data = await res.json();
+
+        if (data.success && data.teams && data.teams.length > 0) {
+          document.getElementById('bannerCount').innerText = `${data.teams.length} Teams`;
+          bodyEl.innerHTML = data.teams.map((team) => `
+            <tr class="hover:bg-slate-750 transition">
+              <td class="py-3 px-4 font-bold text-orange-400">Slot #${team.slotNumber}</td>
+              <td class="py-3 px-4 font-semibold text-white">${team.teamName}</td>
+              <td class="py-3 px-4 text-amber-300 font-medium">${team.captain?.ign || 'N/A'}</td>
+              <td class="py-3 px-4 font-mono text-slate-400 text-xs">${team.captain?.bgmiUid || 'N/A'}</td>
+              <td class="py-3 px-4"><span class="bg-cyan-900 text-cyan-200 text-xs px-2 py-0.5 rounded font-bold">${(team.members?.length || 0)} Players</span></td>
+            </tr>
+          `).join('');
+        } else {
+          document.getElementById('bannerCount').innerText = "0 Teams";
+          bodyEl.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-slate-500 italic">No registered teams found.</td></tr>`;
+        }
+      } catch (err) {
+        console.warn("Error fetching teams:", err);
+      }
+    }
+
     async function dispatchRoom() {
-      const roomId = document.getElementById('roomId').value;
-      const roomPassword = document.getElementById('roomPass').value;
+      const roomId = document.getElementById('roomId').value.trim();
+      const roomPassword = document.getElementById('roomPass').value.trim();
       const statusEl = document.getElementById('dispatchStatus');
 
       if (!roomId || !roomPassword) {
@@ -173,7 +260,6 @@
       }
     }
 
-    // 2. Upload Screenshot & Run OCR Scanner
     async function uploadOCR() {
       const fileInput = document.getElementById('screenshot');
       const statusEl = document.getElementById('ocrStatus');
@@ -188,7 +274,7 @@
       formData.append('screenshot', fileInput.files[0]);
 
       statusEl.className = "text-xs text-center font-semibold text-cyan-400";
-      statusEl.innerText = "🔍 Scanning image with Tesseract OCR engine...";
+      statusEl.innerText = "🔍 Scanning image with OCR engine...";
 
       try {
         const res = await fetch('/api/tournaments/upload-score-ocr', {
@@ -199,7 +285,7 @@
 
         if (res.ok) {
           statusEl.className = "text-xs text-center font-semibold text-emerald-400";
-          statusEl.innerText = "✅ Screenshot scanned! Extracted text logged on server.";
+          statusEl.innerText = "✅ Screenshot scanned!";
         } else {
           statusEl.className = "text-xs text-center font-semibold text-rose-400";
           statusEl.innerText = `❌ ${data.error || 'OCR Scan Failed'}`;
@@ -210,9 +296,8 @@
       }
     }
 
-    // 3. Submit Match Score
     async function submitScore() {
-      const teamId = document.getElementById('teamName').value;
+      const teamId = document.getElementById('teamName').value.trim();
       const kills = document.getElementById('kills').value;
       const rank = document.getElementById('rank').value;
       const statusEl = document.getElementById('scoreStatus');
@@ -253,7 +338,6 @@
       }
     }
 
-    // 4. Fetch Live Leaderboard Data
     async function fetchLeaderboard() {
       if (!currentTournamentId) return;
       const bodyEl = document.getElementById('leaderboardBody');
@@ -276,8 +360,7 @@
       }
     }
 
-    // Initialize on Page Load
-    window.onload = initTournament;
+    window.onload = initDashboard;
   </script>
 </body>
 </html>
