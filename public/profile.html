@@ -17,11 +17,10 @@
           BGMI ESPORTS
         </h1>
       </div>
-      <nav class="flex items-center space-x-3 md:space-x-5 text-xs md:text-sm font-semibold whitespace-nowrap">
-        <a href="index.html" class="text-slate-400 hover:text-orange-400 transition">Dashboard</a>
-        <a href="create-tournament.html" class="text-slate-400 hover:text-orange-400 transition">Create Tournament</a>
-        <a href="register.html" class="text-slate-400 hover:text-orange-400 transition">Team Register</a>
-        <a href="profile.html" class="text-orange-400 border-b-2 border-orange-400 pb-1">Player Stats</a>
+      <nav class="flex items-center space-x-4 md:space-x-6 text-xs md:text-sm font-semibold whitespace-nowrap">
+        <a href="index.html" class="text-slate-400 hover:text-orange-400 hover:scale-105 transition-all duration-300 ease-in-out">Dashboard</a>
+        <a href="register.html" class="text-slate-400 hover:text-orange-400 hover:scale-105 transition-all duration-300 ease-in-out">Team Register</a>
+        <a href="profile.html" class="text-orange-400 border-b-2 border-orange-400 pb-1 transition-all duration-300 ease-in-out">Player Stats</a>
       </nav>
     </header>
 
@@ -30,9 +29,9 @@
       
       <div class="flex gap-2">
         <input id="searchUid" type="text" placeholder="Enter BGMI UID (e.g. 5123456789)" 
-          class="flex-1 p-3 bg-slate-900 rounded-lg border border-slate-700 text-white focus:outline-none focus:border-cyan-500 text-sm" />
+          class="flex-1 p-3 bg-slate-900 rounded-lg border border-slate-700 text-white focus:outline-none focus:border-cyan-500 text-sm transition-all duration-200" />
         <button onclick="fetchProfile()" 
-          class="bg-cyan-600 hover:bg-cyan-500 text-white px-5 rounded-lg font-bold transition text-sm whitespace-nowrap">
+          class="bg-cyan-600 hover:bg-cyan-500 text-white px-5 rounded-lg font-bold transition-all duration-300 ease-in-out active:scale-95 text-sm whitespace-nowrap">
           🔍 Search Stats
         </button>
       </div>
@@ -40,7 +39,7 @@
 
     <div id="profileResult" class="hidden bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg space-y-6">
       <div class="flex items-center space-x-4 border-b border-slate-700 pb-4">
-        <div class="w-16 h-16 bg-gradient-to-tr from-orange-500 to-amber-500 rounded-full flex items-center justify-center text-2xl font-bold shrink-0">
+        <div class="w-16 h-16 bg-gradient-to-tr from-orange-500 to-amber-500 rounded-full flex items-center justify-center text-2xl font-bold shrink-0 shadow-md">
           🪖
         </div>
         <div>

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BGMI Team Registration & Payment</title>
+  <title>BGMI Team Registration</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 </head>
@@ -11,20 +11,19 @@
 
   <div class="max-w-3xl mx-auto space-y-6">
     
-   <header class="flex justify-between items-center border-b border-slate-700 pb-4">
-  <div class="flex items-center space-x-2">
-    <span class="text-2xl">🎮</span>
-    <h1 class="text-lg md:text-xl font-extrabold text-orange-500 tracking-wider whitespace-nowrap">
-      BGMI ESPORTS
-    </h1>
-  </div>
-  <nav class="flex items-center space-x-3 md:space-x-5 text-xs md:text-sm font-semibold whitespace-nowrap">
-    <a href="index.html" id="nav-dashboard" class="text-slate-400 hover:text-orange-400 transition">Dashboard</a>
-    <a href="create-tournament.html" id="nav-create" class="text-slate-400 hover:text-orange-400 transition">Create Tournament</a>
-    <a href="register.html" id="nav-register" class="text-slate-400 hover:text-orange-400 transition">Team Register</a>
-    <a href="profile.html" id="nav-stats" class="text-slate-400 hover:text-orange-400 transition">Player Stats</a>
-  </nav>
-</header>
+    <header class="flex justify-between items-center border-b border-slate-700 pb-4">
+      <div class="flex items-center space-x-2">
+        <span class="text-2xl">🎮</span>
+        <h1 class="text-lg md:text-xl font-extrabold text-orange-500 tracking-wider whitespace-nowrap">
+          BGMI ESPORTS
+        </h1>
+      </div>
+      <nav class="flex items-center space-x-4 md:space-x-6 text-xs md:text-sm font-semibold whitespace-nowrap">
+        <a href="index.html" class="text-slate-400 hover:text-orange-400 hover:scale-105 transition-all duration-300 ease-in-out">Dashboard</a>
+        <a href="register.html" class="text-orange-400 border-b-2 border-orange-400 pb-1 transition-all duration-300 ease-in-out">Team Register</a>
+        <a href="profile.html" class="text-slate-400 hover:text-orange-400 hover:scale-105 transition-all duration-300 ease-in-out">Player Stats</a>
+      </nav>
+    </header>
 
     <div id="tournamentBanner" class="bg-slate-800/90 p-5 rounded-xl border border-orange-500/40 shadow-lg flex justify-between items-center">
       <div>
@@ -43,46 +42,40 @@
       <div>
         <label class="text-xs font-bold text-orange-400 uppercase tracking-wider">Team Name *</label>
         <input id="teamName" type="text" placeholder="e.g. GodLike Esports" 
-          class="w-full p-3 mt-1 bg-slate-900 rounded-lg border border-slate-700 text-white focus:outline-none focus:border-orange-500 text-sm" />
+          class="w-full p-3 mt-1 bg-slate-900 rounded-lg border border-slate-700 text-white focus:outline-none focus:border-orange-500 text-sm transition-all duration-200" />
       </div>
 
       <div class="bg-slate-900/60 p-4 rounded-lg border border-slate-700/80 space-y-3">
         <h3 class="text-sm font-bold text-amber-400 flex items-center gap-2">👑 Player 1 - Captain Details *</h3>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
           <input id="captainIgn" type="text" placeholder="Captain IGN (e.g. JONATHAN)" 
-            class="p-3 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-amber-500" />
+            class="p-3 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-amber-500 transition-all duration-200" />
           <input id="captainUid" type="text" placeholder="Captain BGMI UID (e.g. 5123456789)" 
-            class="p-3 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-amber-500" />
+            class="p-3 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-amber-500 transition-all duration-200" />
         </div>
       </div>
 
       <div class="bg-slate-900/60 p-4 rounded-lg border border-slate-700/80 space-y-3">
         <h3 class="text-sm font-bold text-cyan-400">🎯 Player 2 Details</h3>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <input id="p2Ign" type="text" placeholder="Player 2 IGN" 
-            class="p-3 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-cyan-500" />
-          <input id="p2Uid" type="text" placeholder="Player 2 BGMI UID" 
-            class="p-3 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-cyan-500" />
+          <input id="p2Ign" type="text" placeholder="Player 2 IGN" class="p-3 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-cyan-500" />
+          <input id="p2Uid" type="text" placeholder="Player 2 BGMI UID" class="p-3 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-cyan-500" />
         </div>
       </div>
 
       <div class="bg-slate-900/60 p-4 rounded-lg border border-slate-700/80 space-y-3">
         <h3 class="text-sm font-bold text-cyan-400">🎯 Player 3 Details</h3>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <input id="p3Ign" type="text" placeholder="Player 3 IGN" 
-            class="p-3 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-cyan-500" />
-          <input id="p3Uid" type="text" placeholder="Player 3 BGMI UID" 
-            class="p-3 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-cyan-500" />
+          <input id="p3Ign" type="text" placeholder="Player 3 IGN" class="p-3 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-cyan-500" />
+          <input id="p3Uid" type="text" placeholder="Player 3 BGMI UID" class="p-3 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-cyan-500" />
         </div>
       </div>
 
       <div class="bg-slate-900/60 p-4 rounded-lg border border-slate-700/80 space-y-3">
         <h3 class="text-sm font-bold text-cyan-400">🎯 Player 4 Details</h3>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <input id="p4Ign" type="text" placeholder="Player 4 IGN" 
-            class="p-3 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-cyan-500" />
-          <input id="p4Uid" type="text" placeholder="Player 4 BGMI UID" 
-            class="p-3 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-cyan-500" />
+          <input id="p4Ign" type="text" placeholder="Player 4 IGN" class="p-3 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-cyan-500" />
+          <input id="p4Uid" type="text" placeholder="Player 4 BGMI UID" class="p-3 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-cyan-500" />
         </div>
       </div>
 
@@ -92,15 +85,13 @@
           <span class="text-[10px] bg-purple-900/80 text-purple-200 px-2 py-0.5 rounded uppercase font-bold">Optional</span>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <input id="p5Ign" type="text" placeholder="Player 5 IGN (Optional)" 
-            class="p-3 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-purple-500" />
-          <input id="p5Uid" type="text" placeholder="Player 5 BGMI UID (Optional)" 
-            class="p-3 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-purple-500" />
+          <input id="p5Ign" type="text" placeholder="Player 5 IGN (Optional)" class="p-3 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-purple-500" />
+          <input id="p5Uid" type="text" placeholder="Player 5 BGMI UID (Optional)" class="p-3 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-purple-500" />
         </div>
       </div>
 
       <button id="registerBtn" onclick="registerAndPay()" 
-        class="w-full bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white p-3.5 rounded-lg font-bold transition shadow-lg active:scale-95 text-base">
+        class="w-full bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white p-3.5 rounded-lg font-bold transition-all duration-300 ease-in-out shadow-lg active:scale-95 text-base">
         🚀 Register Team & Reserve Slot
       </button>
 
@@ -112,7 +103,6 @@
   <script>
     let activeTournament = null;
 
-    // Fetch Active Tournament Details On Page Load
     async function loadActiveTournament() {
       try {
         const res = await fetch('/api/tournaments/active');
@@ -153,7 +143,6 @@
         return;
       }
 
-      // Collect Teammates (Player 2 to Player 5 Optional)
       const members = [];
       ['p2', 'p3', 'p4', 'p5'].forEach(id => {
         const ign = document.getElementById(`${id}Ign`).value.trim();
@@ -167,7 +156,6 @@
       statusEl.innerText = "⏳ Registering squad in database...";
 
       try {
-        // Step 1: Register Squad Data in MongoDB
         const regRes = await fetch('/api/teams/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -189,14 +177,12 @@
 
         const fee = activeTournament ? (activeTournament.entryFee || 0) : 0;
 
-        // FREE TOURNAMENT FLOW
         if (fee === 0) {
           statusEl.className = "text-xs text-center font-semibold text-emerald-400";
           statusEl.innerText = `🎉 Squad "${teamName}" Registered Successfully! Slot #${regData.team.slotNumber} Reserved.`;
           return;
         }
 
-        // PAID TOURNAMENT FLOW -> Trigger Razorpay Gateway
         statusEl.innerText = "⏳ Creating UPI payment order...";
         const orderRes = await fetch('/api/payments/create-order', {
           method: 'POST',
@@ -211,7 +197,6 @@
           return;
         }
 
-        // Open Razorpay UPI Modal
         const options = {
           key: "rzp_test_dummy_key",
           amount: orderData.order.amount,
