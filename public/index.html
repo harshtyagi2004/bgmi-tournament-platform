@@ -1,129 +1,283 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>BGMI Tournament Dashboard</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BGMI Esports Organizer Control Panel</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-950 text-white min-h-screen p-6">
-  
-  <header class="max-w-4xl mx-auto flex justify-between items-center mb-8 border-b border-slate-800 pb-4">
-    <h1 class="text-3xl font-extrabold text-orange-500">🎮 BGMI ESPORTS PLATFORM</h1>
-    <nav class="space-x-4 text-sm font-semibold">
-      <a href="/index.html" class="text-orange-400">Dashboard</a>
-      <a href="/register.html" class="text-slate-400 hover:text-white">Register Team</a>
-      <a href="/profile.html" class="text-slate-400 hover:text-white">Player Resume</a>
-    </nav>
-  </header>
+<body class="bg-slate-900 text-slate-100 min-h-screen p-4 md:p-8 font-sans">
 
-  <main class="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
+  <div class="max-w-6xl mx-auto space-y-8">
     
-    <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
-      <h2 class="text-lg font-bold text-orange-400 mb-3">🔑 1-Click Room Dispatcher</h2>
-      <div class="space-y-3">
-        <input id="roomId" type="text" placeholder="Room ID (e.g. 849201)" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-sm">
-        <input id="password" type="text" placeholder="Room Password (e.g. 1234)" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-sm">
-        <button onclick="dispatchRoom()" class="w-full bg-orange-600 hover:bg-orange-500 font-bold py-2 rounded text-sm">Broadcast to Discord/WhatsApp</button>
-        <p id="roomStatus" class="text-xs text-center font-semibold mt-2"></p>
+    <header class="flex flex-col md:flex-row justify-between items-center border-b border-slate-700 pb-4 gap-4">
+      <div class="flex items-center space-x-3">
+        <span class="text-3xl">🎮</span>
+        <h1 class="text-2xl md:text-3xl font-extrabold text-orange-500 tracking-wider">
+          BGMI ESPORTS PLATFORM
+        </h1>
       </div>
-    </div>
+      <nav class="flex space-x-6 text-sm font-semibold">
+        <a href="index.html" class="text-orange-400 border-b-2 border-orange-400 pb-1">Dashboard</a>
+        <a href="register.html" class="text-slate-400 hover:text-orange-400 transition">Register Team</a>
+        <a href="profile.html" class="text-slate-400 hover:text-orange-400 transition">Player Resume</a>
+      </nav>
+    </header>
 
-    <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
-      <h2 class="text-lg font-bold text-orange-400 mb-3">📊 Enter Match Score</h2>
-      <div class="space-y-3">
-        <input id="teamId" type="text" placeholder="Team ID / Name" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-sm">
-        <div class="flex gap-2">
-          <input id="kills" type="number" placeholder="Kills" class="w-1/2 bg-slate-800 border border-slate-700 rounded p-2 text-sm">
-          <input id="placement" type="number" placeholder="Rank (1-25)" class="w-1/2 bg-slate-800 border border-slate-700 rounded p-2 text-sm">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+      <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg space-y-4 flex flex-col justify-between">
+        <div>
+          <h2 class="text-xl font-bold text-orange-400 flex items-center gap-2">
+            🔑 1-Click Room Dispatcher
+          </h2>
+          <p class="text-xs text-slate-400 mt-1">Broadcast Custom Room ID & Pass directly to Discord Webhook.</p>
         </div>
-        <button onclick="submitScore()" class="w-full bg-green-600 hover:bg-green-500 font-bold py-2 rounded text-sm">Update Scoreboard</button>
-        <p id="scoreStatus" class="text-xs text-center font-semibold mt-2"></p>
+        <div class="space-y-3">
+          <input id="roomId" type="text" placeholder="Room ID (e.g. 849201)" 
+            class="w-full p-3 bg-slate-900 rounded-lg border border-slate-700 text-slate-100 focus:outline-none focus:border-orange-500 text-sm" />
+          <input id="roomPass" type="text" placeholder="Room Password (e.g. 1234)" 
+            class="w-full p-3 bg-slate-900 rounded-lg border border-slate-700 text-slate-100 focus:outline-none focus:border-orange-500 text-sm" />
+          <button onclick="dispatchRoom()" 
+            class="w-full bg-orange-600 hover:bg-orange-500 text-white p-3 rounded-lg font-bold transition shadow-md active:scale-95 text-sm">
+            🚀 Broadcast to Discord / WhatsApp
+          </button>
+        </div>
+        <p id="dispatchStatus" class="text-xs text-center h-4 font-semibold"></p>
+      </div>
+
+      <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg space-y-4 flex flex-col justify-between">
+        <div>
+          <h2 class="text-xl font-bold text-cyan-400 flex items-center gap-2">
+            📷 Auto OCR Result Reader
+          </h2>
+          <p class="text-xs text-slate-400 mt-1">Upload end-game screenshot to extract match points automatically.</p>
+        </div>
+        <div class="space-y-3">
+          <input id="screenshot" type="file" accept="image/*" 
+            class="w-full text-xs text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-cyan-900 file:text-cyan-200 hover:file:bg-cyan-800 cursor-pointer" />
+          <button onclick="uploadOCR()" 
+            class="w-full bg-cyan-600 hover:bg-cyan-500 text-white p-3 rounded-lg font-bold transition shadow-md active:scale-95 text-sm">
+            🔍 Scan Result Screenshot
+          </button>
+        </div>
+        <p id="ocrStatus" class="text-xs text-center text-slate-400 h-4 font-semibold"></p>
+      </div>
+
+      <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg space-y-4 flex flex-col justify-between">
+        <div>
+          <h2 class="text-xl font-bold text-green-400 flex items-center gap-2">
+            📊 Enter Match Score
+          </h2>
+          <p class="text-xs text-slate-400 mt-1">Manually update kills and placement points for registered teams.</p>
+        </div>
+        <div class="space-y-3">
+          <input id="teamName" type="text" placeholder="Team Name or ID (e.g. Soul Esports)" 
+            class="w-full p-3 bg-slate-900 rounded-lg border border-slate-700 text-slate-100 focus:outline-none focus:border-green-500 text-sm" />
+          <div class="grid grid-cols-2 gap-2">
+            <input id="kills" type="number" placeholder="Kills" 
+              class="p-3 bg-slate-900 rounded-lg border border-slate-700 text-slate-100 focus:outline-none focus:border-green-500 text-sm" />
+            <input id="rank" type="number" placeholder="Rank (1-25)" 
+              class="p-3 bg-slate-900 rounded-lg border border-slate-700 text-slate-100 focus:outline-none focus:border-green-500 text-sm" />
+          </div>
+          <button onclick="submitScore()" 
+            class="w-full bg-green-600 hover:bg-green-500 text-white p-3 rounded-lg font-bold transition shadow-md active:scale-95 text-sm">
+            📈 Update Scoreboard
+          </button>
+        </div>
+        <p id="scoreStatus" class="text-xs text-center h-4 font-semibold"></p>
+      </div>
+
+    </div>
+
+    <div class="bg-slate-800 rounded-xl border border-slate-700 shadow-lg p-6 space-y-4">
+      <div class="flex justify-between items-center border-b border-slate-700 pb-3">
+        <h2 class="text-xl font-bold text-amber-400 flex items-center gap-2">
+          🏆 Live Tournament Leaderboard
+        </h2>
+        <button onclick="fetchLeaderboard()" class="px-3 py-1 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded text-xs transition flex items-center gap-1">
+          🔄 Refresh
+        </button>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm border-collapse">
+          <thead>
+            <tr class="text-slate-400 border-b border-slate-700 uppercase text-xs tracking-wider">
+              <th class="py-3 px-4">Rank</th>
+              <th class="py-3 px-4">Team Name</th>
+              <th class="py-3 px-4">Total Points</th>
+            </tr>
+          </thead>
+          <tbody id="leaderboardBody" class="divide-y divide-slate-700 text-slate-200">
+            <tr>
+              <td colspan="3" class="text-center py-6 text-slate-500 italic">No score records found yet. Click Refresh or submit match scores!</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
 
-  </main>
-
-  <section class="max-w-4xl mx-auto mt-8 bg-slate-900 border border-slate-800 rounded-xl p-5">
-    <div class="flex justify-between items-center mb-4">
-      <h2 class="text-xl font-bold text-orange-400">🏆 Live Leaderboard</h2>
-      <button onclick="loadLeaderboard()" class="text-xs bg-slate-800 px-3 py-1 rounded border border-slate-700">🔄 Refresh</button>
-    </div>
-    <table class="w-full text-left text-sm text-slate-300">
-      <thead class="bg-slate-800 text-slate-400 uppercase text-xs">
-        <tr>
-          <th class="p-3">Rank</th>
-          <th class="p-3">Team Name</th>
-          <th class="p-3">Slot #</th>
-          <th class="p-3">Total Points</th>
-        </tr>
-      </thead>
-      <tbody id="leaderboardBody">
-        <tr><td colspan="4" class="p-3 text-center text-slate-500">Loading standings...</td></tr>
-      </tbody>
-    </table>
-  </section>
+  </div>
 
   <script>
-    const TOURNAMENT_ID = "65d1a2b3c4d5e6f7a8b9c0d1";
+    let currentTournamentId = null;
 
-    async function dispatchRoom() {
-      const roomId = document.getElementById('roomId').value;
-      const password = document.getElementById('password').value;
-      const status = document.getElementById('roomStatus');
-      
-      const res = await fetch('/api/tournaments/broadcast-room', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ tournamentId: TOURNAMENT_ID, roomId, password })
-      });
-      const data = await res.json();
-      status.innerText = data.success ? "✅ Broadcasted Successfully!" : "❌ Failed!";
-      status.className = data.success ? "text-xs text-center font-semibold text-green-400 mt-2" : "text-xs text-center font-semibold text-red-400 mt-2";
-    }
-
-    async function submitScore() {
-      const teamId = document.getElementById('teamId').value;
-      const kills = parseInt(document.getElementById('kills').value) || 0;
-      const placement = parseInt(document.getElementById('placement').value) || 25;
-      const status = document.getElementById('scoreStatus');
-
-      const res = await fetch('/api/tournaments/score', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          tournamentId: TOURNAMENT_ID,
-          teamResults: [{ teamId, kills, placement }]
-        })
-      });
-      const data = await res.json();
-      status.innerText = data.success ? "✅ Score Recorded!" : "❌ Error!";
-      status.className = data.success ? "text-xs text-center font-semibold text-green-400 mt-2" : "text-xs text-center font-semibold text-red-400 mt-2";
-      loadLeaderboard();
-    }
-
-    async function loadLeaderboard() {
-      const tbody = document.getElementById('leaderboardBody');
+    // Fetch Active Tournament ID on Load
+    async function initTournament() {
       try {
-        const res = await fetch(`/api/tournaments/${TOURNAMENT_ID}/leaderboard`);
+        const res = await fetch('/api/tournaments/active');
         const data = await res.json();
-        if (data.success && data.data.length > 0) {
-          tbody.innerHTML = data.data.map(t => `
-            <tr class="border-b border-slate-800">
-              <td class="p-3 font-bold text-orange-400">#${t.rank}</td>
-              <td class="p-3">${t.teamName}</td>
-              <td class="p-3">Slot ${t.slotNumber}</td>
-              <td class="p-3 font-bold">${t.totalPoints} pts</td>
-            </tr>
-          `).join('');
-        } else {
-          tbody.innerHTML = `<tr><td colspan="4" class="p-3 text-center text-slate-500">No score records found yet.</td></tr>`;
+        if (data.success && data.tournamentId) {
+          currentTournamentId = data.tournamentId;
+          fetchLeaderboard();
         }
       } catch (err) {
-        tbody.innerHTML = `<tr><td colspan="4" class="p-3 text-center text-slate-500">Leaderboard server offline.</td></tr>`;
+        console.warn("Could not load active tournament ID:", err);
       }
     }
 
-    loadLeaderboard();
+    // 1. Dispatch Room Credentials
+    async function dispatchRoom() {
+      const roomId = document.getElementById('roomId').value;
+      const roomPassword = document.getElementById('roomPass').value;
+      const statusEl = document.getElementById('dispatchStatus');
+
+      if (!roomId || !roomPassword) {
+        statusEl.className = "text-xs text-center font-semibold text-rose-400";
+        statusEl.innerText = "❌ Please enter both Room ID & Password!";
+        return;
+      }
+
+      statusEl.className = "text-xs text-center font-semibold text-orange-400";
+      statusEl.innerText = "⏳ Dispatching room credentials...";
+
+      try {
+        const res = await fetch('/api/tournaments/broadcast-room', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ roomId, roomPassword })
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          statusEl.className = "text-xs text-center font-semibold text-emerald-400";
+          statusEl.innerText = "✅ Credentials Dispatched Successfully!";
+        } else {
+          statusEl.className = "text-xs text-center font-semibold text-rose-400";
+          statusEl.innerText = `❌ ${data.error || 'Failed to dispatch'}`;
+        }
+      } catch (err) {
+        statusEl.className = "text-xs text-center font-semibold text-rose-400";
+        statusEl.innerText = "❌ Server error occurred.";
+      }
+    }
+
+    // 2. Upload Screenshot & Run OCR Scanner
+    async function uploadOCR() {
+      const fileInput = document.getElementById('screenshot');
+      const statusEl = document.getElementById('ocrStatus');
+
+      if (!fileInput.files[0]) {
+        statusEl.innerText = "❌ Please select an image file first!";
+        statusEl.className = "text-xs text-center font-semibold text-rose-400";
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('screenshot', fileInput.files[0]);
+
+      statusEl.className = "text-xs text-center font-semibold text-cyan-400";
+      statusEl.innerText = "🔍 Scanning image with Tesseract OCR engine...";
+
+      try {
+        const res = await fetch('/api/tournaments/upload-score-ocr', {
+          method: 'POST',
+          body: formData
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          statusEl.className = "text-xs text-center font-semibold text-emerald-400";
+          statusEl.innerText = "✅ Screenshot scanned! Extracted text logged on server.";
+        } else {
+          statusEl.className = "text-xs text-center font-semibold text-rose-400";
+          statusEl.innerText = `❌ ${data.error || 'OCR Scan Failed'}`;
+        }
+      } catch (err) {
+        statusEl.className = "text-xs text-center font-semibold text-rose-400";
+        statusEl.innerText = "❌ OCR Service unavailable.";
+      }
+    }
+
+    // 3. Submit Match Score
+    async function submitScore() {
+      const teamId = document.getElementById('teamName').value;
+      const kills = document.getElementById('kills').value;
+      const rank = document.getElementById('rank').value;
+      const statusEl = document.getElementById('scoreStatus');
+
+      if (!teamId || kills === "" || !rank) {
+        statusEl.className = "text-xs text-center font-semibold text-rose-400";
+        statusEl.innerText = "❌ Fill all fields (Team, Kills, Rank)!";
+        return;
+      }
+
+      statusEl.className = "text-xs text-center font-semibold text-green-400";
+      statusEl.innerText = "⏳ Updating score...";
+
+      try {
+        const res = await fetch('/api/tournaments/score', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tournamentId: currentTournamentId || 'default',
+            teamId,
+            kills: Number(kills),
+            rank: Number(rank)
+          })
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          statusEl.className = "text-xs text-center font-semibold text-emerald-400";
+          statusEl.innerText = "✅ Scoreboard updated!";
+          fetchLeaderboard();
+        } else {
+          statusEl.className = "text-xs text-center font-semibold text-rose-400";
+          statusEl.innerText = `❌ ${data.error || 'Failed to update score'}`;
+        }
+      } catch (err) {
+        statusEl.className = "text-xs text-center font-semibold text-rose-400";
+        statusEl.innerText = "❌ Server error occurred.";
+      }
+    }
+
+    // 4. Fetch Live Leaderboard Data
+    async function fetchLeaderboard() {
+      if (!currentTournamentId) return;
+      const bodyEl = document.getElementById('leaderboardBody');
+
+      try {
+        const res = await fetch(`/api/tournaments/${currentTournamentId}/leaderboard`);
+        const data = await res.json();
+
+        if (data.success && data.leaderboard && data.leaderboard.length > 0) {
+          bodyEl.innerHTML = data.leaderboard.map((item, index) => `
+            <tr class="hover:bg-slate-750 transition">
+              <td class="py-3 px-4 font-bold text-amber-400">#${index + 1}</td>
+              <td class="py-3 px-4 font-semibold text-slate-100">${item.team || item.member || 'Team'}</td>
+              <td class="py-3 px-4 font-bold text-emerald-400">${item.score || item.points || 0} pts</td>
+            </tr>
+          `).join('');
+        }
+      } catch (err) {
+        console.warn("Error fetching leaderboard:", err);
+      }
+    }
+
+    // Initialize on Page Load
+    window.onload = initTournament;
   </script>
 </body>
 </html>

@@ -1,38 +1,29 @@
-const Tesseract = require('tesseract.js');
+const tesseract = require('tesseract.js');
 const fs = require('fs');
 
-/**
- * Reads an uploaded screenshot and extracts kills and rankings via OCR
- */
 exports.processScoreScreenshot = async (req, res) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ success: false, error: "No image uploaded." });
+      return res.status(400).json({ success: false, error: "No screenshot uploaded." });
     }
 
     const imagePath = req.file.path;
 
-    // Run Tesseract OCR on the uploaded image
-    const { data: { text } } = await Tesseract.recognize(imagePath, 'eng');
+    // Perform OCR scan
+    const { data: { text } } = await tesseract.recognize(imagePath, 'eng');
 
-    // Clean up local temp image file
-    fs.unlinkSync(imagePath);
+    // Simple regex extraction for Demo (looks for numbers/team names)
+    console.log("--- OCR Scanned Text --- \n", text);
 
-    // Simple parser matching text patterns (e.g., "Kills: 5", "Rank: 1")
-    const killsMatch = text.match(/kills?\s*[:\-]?\s*(\d+)/i);
-    const rankMatch = text.match(/rank\s*[:\-]?\s*(\d+)|#(\d+)/i);
-
-    const extractedKills = killsMatch ? parseInt(killsMatch[1], 10) : 0;
-    const extractedRank = rankMatch ? parseInt(rankMatch[1] || rankMatch[2], 10) : 1;
+    // Clean up temporary uploaded file
+    if (fs.existsSync(imagePath)) {
+      fs.unlinkSync(imagePath);
+    }
 
     res.status(200).json({
       success: true,
-      message: "Screenshot parsed successfully!",
-      extractedData: {
-        rawText: text,
-        suggestedKills: extractedKills,
-        suggestedPlacement: extractedRank
-      }
+      message: "Screenshot scanned successfully!",
+      extractedText: text
     });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
