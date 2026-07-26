@@ -126,6 +126,60 @@
 
       </div>
 
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+        <div class="bg-slate-800 p-6 rounded-xl border border-rose-500/30 shadow-lg space-y-4">
+          <h2 class="text-lg font-bold text-rose-400 flex items-center gap-2">
+            🛡️ Anti-Cheat: Ban BGMI UID
+          </h2>
+          <p class="text-xs text-slate-400">Ban cheater BGMI UIDs to instantly block them from team registration.</p>
+          
+          <div class="space-y-3">
+            <div>
+              <label class="text-[11px] font-bold text-slate-300 uppercase">BGMI UID *</label>
+              <input id="banUid" type="text" placeholder="e.g. 5123456789" class="w-full p-3 mt-1 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-rose-500" />
+            </div>
+            <div>
+              <label class="text-[11px] font-bold text-slate-300 uppercase">Ban Reason</label>
+              <input id="banReason" type="text" placeholder="e.g. ESP / Wallhack / Toxic Behavior" class="w-full p-3 mt-1 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-rose-500" />
+            </div>
+            <button onclick="banPlayer()" class="w-full bg-rose-600 hover:bg-rose-500 text-white p-3 rounded-lg font-bold transition text-sm shadow-md active:scale-95">
+              🚨 Ban BGMI UID Immediately
+            </button>
+          </div>
+          <p id="banStatus" class="text-xs text-center h-4 font-semibold"></p>
+        </div>
+
+        <div class="md:col-span-2 bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg space-y-4">
+          <div class="flex justify-between items-center border-b border-slate-700 pb-3">
+            <h2 class="text-lg font-bold text-amber-400 flex items-center gap-2">
+              🚫 Banned Players Blacklist
+            </h2>
+            <button onclick="loadBannedPlayers()" class="px-3 py-1 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded text-xs transition">
+              🔄 Refresh List
+            </button>
+          </div>
+
+          <div class="overflow-x-auto max-h-60 overflow-y-auto">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr class="text-slate-400 border-b border-slate-700 uppercase tracking-wider">
+                  <th class="py-2.5 px-3">BGMI UID</th>
+                  <th class="py-2.5 px-3">Reason</th>
+                  <th class="py-2.5 px-3 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody id="bannedListBody" class="divide-y divide-slate-700 text-slate-200">
+                <tr>
+                  <td colspan="3" class="text-center py-4 text-slate-500 italic">No banned players recorded.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
     </div>
 
   </div>
@@ -203,6 +257,7 @@
         adminDashboard.classList.remove('hidden');
         logoutBtn.classList.remove('hidden');
         document.getElementById('adminDisplayName').innerText = name || 'Organizer';
+        loadBannedPlayers();
       } else {
         authContainer.classList.remove('hidden');
         adminDashboard.classList.add('hidden');
@@ -214,6 +269,89 @@
       localStorage.removeItem('adminToken');
       localStorage.removeItem('adminName');
       checkAdminSession();
+    }
+
+    async function banPlayer() {
+      const bgmiUid = document.getElementById('banUid').value.trim();
+      const reason = document.getElementById('banReason').value.trim();
+      const statusEl = document.getElementById('banStatus');
+
+      if (!bgmiUid) {
+        statusEl.className = "text-xs text-center font-semibold text-rose-400";
+        statusEl.innerText = "❌ Please enter a BGMI UID!";
+        return;
+      }
+
+      statusEl.className = "text-xs text-center font-semibold text-orange-400";
+      statusEl.innerText = "⏳ Processing ban...";
+
+      try {
+        const res = await fetch('/api/admin/ban-player', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bgmiUid, reason })
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          statusEl.className = "text-xs text-center font-semibold text-emerald-400";
+          statusEl.innerText = `✅ UID ${bgmiUid} successfully BANNED!`;
+          document.getElementById('banUid').value = "";
+          document.getElementById('banReason').value = "";
+          loadBannedPlayers();
+        } else {
+          statusEl.className = "text-xs text-center font-semibold text-rose-400";
+          statusEl.innerText = `❌ ${data.error || 'Failed to ban UID'}`;
+        }
+      } catch (e) {
+        statusEl.className = "text-xs text-center font-semibold text-rose-400";
+        statusEl.innerText = "❌ Server error occurred.";
+      }
+    }
+
+    async function loadBannedPlayers() {
+      const bodyEl = document.getElementById('bannedListBody');
+      try {
+        const res = await fetch('/api/admin/banned-players');
+        const data = await res.json();
+
+        if (data.success && data.banned && data.banned.length > 0) {
+          bodyEl.innerHTML = data.banned.map((player) => `
+            <tr class="hover:bg-slate-750 transition">
+              <td class="py-2.5 px-3 font-mono font-bold text-rose-400">${player.bgmiUid}</td>
+              <td class="py-2.5 px-3 text-slate-300">${player.reason || 'Suspicious Activity'}</td>
+              <td class="py-2.5 px-3 text-right">
+                <button onclick="unbanPlayer('${player.bgmiUid}')" class="bg-slate-700 hover:bg-emerald-600 text-slate-200 hover:text-white px-2 py-1 rounded text-[10px] font-bold transition">
+                  🟢 Unban
+                </button>
+              </td>
+            </tr>
+          `).join('');
+        } else {
+          bodyEl.innerHTML = `<tr><td colspan="3" class="text-center py-4 text-slate-500 italic">No banned players recorded.</td></tr>`;
+        }
+      } catch (e) {
+        console.warn("Could not load banned list:", e);
+      }
+    }
+
+    async function unbanPlayer(bgmiUid) {
+      if (!confirm(`Are you sure you want to UNBAN UID ${bgmiUid}?`)) return;
+
+      try {
+        const res = await fetch('/api/admin/unban-player', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bgmiUid })
+        });
+        if (res.ok) {
+          loadBannedPlayers();
+        } else {
+          alert("Failed to unban player.");
+        }
+      } catch (e) {
+        alert("Server error while unbanning.");
+      }
     }
 
     async function dispatchRoom() {
