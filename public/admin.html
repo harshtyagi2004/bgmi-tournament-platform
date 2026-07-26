@@ -83,7 +83,7 @@
             <h2 class="text-lg font-extrabold text-cyan-400 flex items-center gap-2">
               🎥 Live Spectator Screen AI Anti-Cheat Radar
             </h2>
-            <p class="text-xs text-slate-400 mt-0.5">Detects Wallhack, Speed Hack & Flags 20+ Kills for Manual Spectator Review.</p>
+            <p class="text-xs text-slate-400 mt-0.5">Scans 'Eliminations' HUD box (Ignores 'Remaining' players count).</p>
           </div>
           <span id="aiEngineStatus" class="bg-slate-700 text-slate-300 text-xs px-3 py-1 rounded-full font-bold">
             ⚪ Scanner Offline
@@ -254,7 +254,6 @@
     let streamMedia = null;
     let scanInterval = null;
 
-    // 1. AUTHENTICATION TAB SWITCHER
     function switchAuthTab(mode) {
       authMode = mode;
       const nameField = document.getElementById('nameField');
@@ -275,7 +274,6 @@
       }
     }
 
-    // 2. ADMIN AUTHENTICATION HANDLER
     async function handleAuth() {
       const email = document.getElementById('adminEmail').value.trim();
       const password = document.getElementById('adminPassword').value.trim();
@@ -314,7 +312,6 @@
       }
     }
 
-    // 3. CHECK ADMIN SESSION STATE
     function checkAdminSession() {
       const token = localStorage.getItem('adminToken');
       const name = localStorage.getItem('adminName');
@@ -335,14 +332,12 @@
       }
     }
 
-    // 4. LOGOUT
     function logoutAdmin() {
       localStorage.removeItem('adminToken');
       localStorage.removeItem('adminName');
       checkAdminSession();
     }
 
-    // 5. LIVE WEBRTC SPECTATOR SCREEN SHARE
     async function startScreenShare() {
       const video = document.getElementById('spectatorVideo');
       const placeholder = document.getElementById('noStreamPlaceholder');
@@ -377,7 +372,7 @@
       statusTag.innerText = "⚪ Scanner Offline";
     }
 
-    // 6. 🤖 REAL-TIME AUTO VIDEO FRAME OCR SCANNER (CROPPED & MULTI-RULE)
+    // 🤖 REAL-TIME ELIMINATIONS-ONLY OCR SCANNER
     function startLiveFrameScan() {
       const video = document.getElementById('spectatorVideo');
       const canvas = document.createElement('canvas');
@@ -390,11 +385,11 @@
         const originalWidth = video.videoWidth || 1280;
         const originalHeight = video.videoHeight || 720;
 
-        // CROP TOP-LEFT GAME KILLFEED REGION (Ignores bottom stream overlays)
+        // CROP TOP-LEFT GAME HUD (Pehela 35% width x 25% height)
         const cropX = 0;
         const cropY = 0;
-        const cropWidth = Math.floor(originalWidth * 0.45);
-        const cropHeight = Math.floor(originalHeight * 0.40);
+        const cropWidth = Math.floor(originalWidth * 0.35);
+        const cropHeight = Math.floor(originalHeight * 0.25);
 
         canvas.width = cropWidth;
         canvas.height = cropHeight;
@@ -407,22 +402,28 @@
           const result = await Tesseract.recognize(frameImage, 'eng');
           const detectedText = result.data.text.toLowerCase();
 
-          // Extract 1-2 digit numbers to filter out phone numbers
-          const allNumbers = detectedText.match(/\b\d{1,2}\b/g) || [];
-          const validKills = allNumbers.map(Number).filter(n => n >= 15 && n <= 40);
-
-          const maxNum = validKills.length > 0 ? Math.max(...validKills) : 0;
-          let cheatTag = "NONE";
-
-          if (detectedText.includes('wall') || detectedText.includes('esp')) {
-            cheatTag = "WALLHACK";
-          } else if (detectedText.includes('speed') || detectedText.includes('fast')) {
-            cheatTag = "SPEED_HACK";
+          // 🎯 EXACT ELIMINATIONS MATCH: Ignores "Remaining" number!
+          // Matches patterns like "eliminations: 5", "elims 12", or "kills 22"
+          let extractedKills = 0;
+          
+          const elimMatch = detectedText.match(/(?:elimination|eliminations|elims|kills|elim)\s*[:\s-]*(\d{1,2})/i);
+          
+          if (elimMatch && elimMatch[1]) {
+            extractedKills = Number(elimMatch[1]);
+          } else {
+            // Fallback: If word "remaining" exists, remove it and its number before reading
+            const cleanedText = detectedText.replace(/remaining\s*[:\s-]*\d+/gi, '');
+            const nums = cleanedText.match(/\b\d{1,2}\b/g) || [];
+            const valid = nums.map(Number).filter(n => n >= 15 && n <= 40);
+            if (valid.length > 0) extractedKills = Math.max(...valid);
           }
 
-          // Trigger API only if 20+ kills or wallhack/speedhack keyword detected
-          if (maxNum > 20 || cheatTag !== "NONE") {
-            const detectedKills = maxNum || 21;
+          let cheatTag = "NONE";
+          if (detectedText.includes('wall') || detectedText.includes('esp')) cheatTag = "WALLHACK";
+          if (detectedText.includes('speed') || detectedText.includes('fast')) cheatTag = "SPEED_HACK";
+
+          // Trigger API only if actual ELIMINATIONS > 20 or direct cheat detected
+          if (extractedKills > 20 || cheatTag !== "NONE") {
 
             const res = await fetch('/api/admin/flag-suspicious', {
               method: 'POST',
@@ -431,8 +432,8 @@
                 teamName: "Spectated Squad",
                 playerIgn: "SpectatedPlayer",
                 bgmiUid: "LIVE_PLAYER",
-                kills: detectedKills,
-                headshots: Math.floor(detectedKills * 0.5),
+                kills: extractedKills,
+                headshots: Math.floor(extractedKills * 0.5),
                 cheatType: cheatTag
               })
             });
@@ -449,7 +450,7 @@
                     <span>${data.flag}</span>
                     <span>Risk: ${data.riskScore}</span>
                   </div>
-                  <p class="text-[11px]">Detected Kills: <span class="font-mono text-white font-bold">${detectedKills}</span></p>
+                  <p class="text-[11px]">Eliminations Count: <span class="font-mono text-white font-bold">${extractedKills} Kills</span></p>
                   <p class="text-[10px] opacity-90">${data.reasons.join(' | ')}</p>
                 </div>
               ` + logBox.innerHTML;
@@ -461,7 +462,6 @@
       }, 3500);
     }
 
-    // 7. SIMULATE AI SCAN WITH CHEAT TYPE
     async function simulateScan() {
       const bgmiUid = document.getElementById('simUid').value.trim() || "5123456789";
       const kills = document.getElementById('simKills').value || 22;
@@ -509,7 +509,6 @@
       banPlayer();
     }
 
-    // 8. BAN PLAYER UID
     async function banPlayer() {
       const bgmiUid = document.getElementById('banUid').value.trim();
       const reason = document.getElementById('banReason').value.trim();
@@ -548,7 +547,6 @@
       }
     }
 
-    // 9. FETCH BANNED PLAYERS
     async function loadBannedPlayers() {
       const bodyEl = document.getElementById('bannedListBody');
       try {
@@ -575,7 +573,6 @@
       }
     }
 
-    // 10. UNBAN PLAYER
     async function unbanPlayer(bgmiUid) {
       if (!confirm(`Are you sure you want to UNBAN UID ${bgmiUid}?`)) return;
 
@@ -595,7 +592,6 @@
       }
     }
 
-    // 11. DISPATCH ROOM CREDENTIALS
     async function dispatchRoom() {
       const roomId = document.getElementById('roomId').value.trim();
       const roomPassword = document.getElementById('roomPass').value.trim();
@@ -619,7 +615,6 @@
       }
     }
 
-    // 12. UPLOAD OCR SCREENSHOT
     async function uploadOCR() {
       const fileInput = document.getElementById('screenshot');
       const statusEl = document.getElementById('ocrStatus');
@@ -640,7 +635,6 @@
       }
     }
 
-    // 13. SUBMIT MATCH SCORE
     async function submitScore() {
       const teamId = document.getElementById('teamName').value.trim();
       const kills = document.getElementById('kills').value;
