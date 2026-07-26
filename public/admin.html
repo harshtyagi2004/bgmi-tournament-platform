@@ -81,9 +81,9 @@
         <div class="flex justify-between items-center border-b border-slate-700 pb-3">
           <div>
             <h2 class="text-lg font-extrabold text-cyan-400 flex items-center gap-2">
-              🎥 Live Spectator Screen AI Anti-Cheat Scan
+              🎥 Live Spectator Screen AI Anti-Cheat Radar
             </h2>
-            <p class="text-xs text-slate-400 mt-0.5">Targeted OCR auto-scans Top-Left killfeed to detect suspicious kill spikes in real-time.</p>
+            <p class="text-xs text-slate-400 mt-0.5">Detects Wallhack, Speed Hack & Flags 20+ Kills for Manual Spectator Review.</p>
           </div>
           <span id="aiEngineStatus" class="bg-slate-700 text-slate-300 text-xs px-3 py-1 rounded-full font-bold">
             ⚪ Scanner Offline
@@ -113,21 +113,26 @@
 
           <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-700 space-y-3 flex flex-col justify-between">
             <div>
-              <h3 class="text-xs font-bold text-amber-400 uppercase tracking-wider mb-2">🚨 Live Detection Radar Alerts</h3>
+              <h3 class="text-xs font-bold text-amber-400 uppercase tracking-wider mb-2">🚨 Live Anomaly Flags & Review Feed</h3>
               <div id="aiAlertsLog" class="space-y-2 max-h-48 overflow-y-auto text-xs font-mono">
-                <p class="text-slate-500 italic text-center py-8">Connect live screen share to start receiving instant cheating flags...</p>
+                <p class="text-slate-500 italic text-center py-8">Connect live screen share to start receiving cheat & review alerts...</p>
               </div>
             </div>
 
             <div class="border-t border-slate-800 pt-3 space-y-2">
-              <p class="text-[10px] text-slate-400 font-bold uppercase">Quick Test Simulation:</p>
+              <p class="text-[10px] text-slate-400 font-bold uppercase">Simulate Anomaly Scan:</p>
               <div class="grid grid-cols-3 gap-2">
                 <input id="simUid" type="text" placeholder="BGMI UID" class="p-2 bg-slate-950 rounded border border-slate-700 text-xs text-white" />
-                <input id="simKills" type="number" placeholder="Kills (e.g. 15)" class="p-2 bg-slate-950 rounded border border-slate-700 text-xs text-white" />
-                <button onclick="simulateScan()" class="bg-amber-600 hover:bg-amber-500 text-white font-bold rounded text-xs">
-                  ⚡ Test Scan
-                </button>
+                <input id="simKills" type="number" placeholder="Kills (e.g. 22)" class="p-2 bg-slate-950 rounded border border-slate-700 text-xs text-white" />
+                <select id="simCheat" class="p-2 bg-slate-950 rounded border border-slate-700 text-xs text-amber-300">
+                  <option value="NONE">None (Kills Check)</option>
+                  <option value="WALLHACK">Wallhack / ESP</option>
+                  <option value="SPEED_HACK">Speed Hack</option>
+                </select>
               </div>
+              <button onclick="simulateScan()" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold rounded py-1.5 text-xs">
+                ⚡ Test Anomaly Scan
+              </button>
             </div>
 
           </div>
@@ -201,7 +206,7 @@
             </div>
             <div>
               <label class="text-[11px] font-bold text-slate-300 uppercase">Ban Reason</label>
-              <input id="banReason" type="text" placeholder="e.g. ESP / Wallhack / Toxic Behavior" class="w-full p-3 mt-1 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-rose-500" />
+              <input id="banReason" type="text" placeholder="e.g. Wallhack / Speed Hack / ESP" class="w-full p-3 mt-1 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-rose-500" />
             </div>
             <button onclick="banPlayer()" class="w-full bg-rose-600 hover:bg-rose-500 text-white p-3 rounded-lg font-bold transition text-sm shadow-md active:scale-95">
               🚨 Ban BGMI UID Immediately
@@ -352,7 +357,6 @@
         statusTag.className = "bg-emerald-900 text-emerald-300 text-xs px-3 py-1 rounded-full font-bold animate-pulse";
         statusTag.innerText = "🟢 AI Live Radar Active";
 
-        // Start targeted video frame OCR scanning loop
         startLiveFrameScan();
       } catch (err) {
         alert("Screen sharing cancelled or permission denied.");
@@ -373,7 +377,7 @@
       statusTag.innerText = "⚪ Scanner Offline";
     }
 
-    // 6. 🤖 REAL-TIME AUTO VIDEO FRAME OCR SCANNER (CROPPED & FILTERED FOR ACCURACY)
+    // 6. 🤖 REAL-TIME AUTO VIDEO FRAME OCR SCANNER (CROPPED & MULTI-RULE)
     function startLiveFrameScan() {
       const video = document.getElementById('spectatorVideo');
       const canvas = document.createElement('canvas');
@@ -386,7 +390,7 @@
         const originalWidth = video.videoWidth || 1280;
         const originalHeight = video.videoHeight || 720;
 
-        // 🎯 CROP REGION: Crops ONLY top-left 45% x 40% game screen (ignores bottom streamer overlays/phone numbers)
+        // CROP TOP-LEFT GAME KILLFEED REGION (Ignores bottom stream overlays)
         const cropX = 0;
         const cropY = 0;
         const cropWidth = Math.floor(originalWidth * 0.45);
@@ -395,48 +399,58 @@
         canvas.width = cropWidth;
         canvas.height = cropHeight;
 
-        // Draw only the cropped killfeed area onto the canvas
         ctx.drawImage(video, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
 
         const frameImage = canvas.toDataURL('image/jpeg');
 
         try {
-          // Client-side OCR processing on cropped image
           const result = await Tesseract.recognize(frameImage, 'eng');
           const detectedText = result.data.text.toLowerCase();
 
-          // 🛑 STRICT FILTER: Extract only 1-2 digit numbers (8-35 range) to reject 10-digit mobile numbers/view counts
+          // Extract 1-2 digit numbers to filter out phone numbers
           const allNumbers = detectedText.match(/\b\d{1,2}\b/g) || [];
-          const validKills = allNumbers.map(Number).filter(n => n >= 8 && n <= 35);
+          const validKills = allNumbers.map(Number).filter(n => n >= 15 && n <= 40);
 
           const maxNum = validKills.length > 0 ? Math.max(...validKills) : 0;
+          let cheatTag = "NONE";
 
-          // Trigger alert only if realistic kill count or headshot keyword detected
-          if (maxNum >= 10 || (detectedText.includes('headshot') && maxNum >= 8)) {
-            const detectedKills = maxNum || 12;
+          if (detectedText.includes('wall') || detectedText.includes('esp')) {
+            cheatTag = "WALLHACK";
+          } else if (detectedText.includes('speed') || detectedText.includes('fast')) {
+            cheatTag = "SPEED_HACK";
+          }
+
+          // Trigger API only if 20+ kills or wallhack/speedhack keyword detected
+          if (maxNum > 20 || cheatTag !== "NONE") {
+            const detectedKills = maxNum || 21;
 
             const res = await fetch('/api/admin/flag-suspicious', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 teamName: "Spectated Squad",
-                playerIgn: "Suspicious Player",
-                bgmiUid: "LIVE_STREAM_PLAYER",
+                playerIgn: "SpectatedPlayer",
+                bgmiUid: "LIVE_PLAYER",
                 kills: detectedKills,
-                headshots: Math.floor(detectedKills * 0.6)
+                headshots: Math.floor(detectedKills * 0.5),
+                cheatType: cheatTag
               })
             });
             const data = await res.json();
 
             if (data.isSuspicious) {
+              const alertStyle = data.isConfirmedCheat
+                ? "bg-rose-950/80 border-rose-600 text-rose-200"
+                : "bg-amber-950/80 border-amber-500 text-amber-200";
+
               logBox.innerHTML = `
-                <div class="bg-rose-950/80 border border-rose-600 p-2.5 rounded-lg text-rose-200 space-y-1 animate-bounce">
+                <div class="${alertStyle} border p-2.5 rounded-lg space-y-1">
                   <div class="flex justify-between font-bold">
-                    <span>🚨 ${data.flag}</span>
-                    <span class="text-rose-400">${data.riskScore}</span>
+                    <span>${data.flag}</span>
+                    <span>Risk: ${data.riskScore}</span>
                   </div>
-                  <p class="text-[11px] text-white">Targeted OCR Detected: <span class="font-mono text-amber-300">${detectedKills} Kills / Headshots</span></p>
-                  <p class="text-[10px] text-rose-300">${data.reasons.join(' | ')}</p>
+                  <p class="text-[11px]">Detected Kills: <span class="font-mono text-white font-bold">${detectedKills}</span></p>
+                  <p class="text-[10px] opacity-90">${data.reasons.join(' | ')}</p>
                 </div>
               ` + logBox.innerHTML;
             }
@@ -444,13 +458,14 @@
         } catch (e) {
           console.warn("Live frame OCR processing...", e);
         }
-      }, 3500); // Scans cropped video stream frame every 3.5 seconds
+      }, 3500);
     }
 
-    // 7. SIMULATE AI SCAN
+    // 7. SIMULATE AI SCAN WITH CHEAT TYPE
     async function simulateScan() {
       const bgmiUid = document.getElementById('simUid').value.trim() || "5123456789";
-      const kills = document.getElementById('simKills').value || 14;
+      const kills = document.getElementById('simKills').value || 22;
+      const cheatType = document.getElementById('simCheat').value;
       const logBox = document.getElementById('aiAlertsLog');
 
       try {
@@ -459,35 +474,30 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             teamName: "Test Squad",
-            playerIgn: "SuspiciousPlayer",
+            playerIgn: "PlayerX",
             bgmiUid: bgmiUid,
             kills: Number(kills),
-            headshots: Math.floor(kills * 0.7)
+            headshots: Math.floor(kills * 0.5),
+            cheatType: cheatType
           })
         });
         const data = await res.json();
 
-        if (data.isSuspicious) {
-          logBox.innerHTML = `
-            <div class="bg-rose-950/80 border border-rose-600 p-2.5 rounded-lg text-rose-200 space-y-1 animate-bounce">
-              <div class="flex justify-between font-bold">
-                <span>🚨 ${data.flag}</span>
-                <span class="text-rose-400">${data.riskScore}</span>
-              </div>
-              <p>UID: <span class="font-mono text-white">${data.playerDetails.bgmiUid}</span></p>
-              <p class="text-[10px] text-rose-300">${data.reasons.join(' | ')}</p>
-              <button onclick="banPlayerDirect('${data.playerDetails.bgmiUid}')" class="mt-1 bg-rose-600 hover:bg-rose-500 text-white px-2 py-0.5 rounded text-[10px] font-bold">
-                🔨 Instant Ban UID
-              </button>
+        const alertStyle = data.isConfirmedCheat 
+          ? "bg-rose-950/80 border-rose-600 text-rose-200"
+          : (data.isSuspicious ? "bg-amber-950/80 border-amber-500 text-amber-200" : "bg-slate-800 border-emerald-500/40 text-emerald-300");
+
+        logBox.innerHTML = `
+          <div class="${alertStyle} border p-2.5 rounded-lg space-y-1">
+            <div class="flex justify-between font-bold">
+              <span>${data.flag}</span>
+              <span>Risk: ${data.riskScore}</span>
             </div>
-          ` + logBox.innerHTML;
-        } else {
-          logBox.innerHTML = `
-            <div class="bg-slate-800 border border-emerald-500/40 p-2 rounded text-emerald-300">
-              🟢 UID ${bgmiUid}: Gameplay Normal (${kills} Kills)
-            </div>
-          ` + logBox.innerHTML;
-        }
+            <p class="text-[11px]">UID: <span class="font-mono text-white font-bold">${data.playerDetails.bgmiUid}</span> (${kills} Kills)</p>
+            <p class="text-[10px] opacity-90">${data.reasons.join(' | ')}</p>
+            ${data.isConfirmedCheat ? `<button onclick="banPlayerDirect('${data.playerDetails.bgmiUid}')" class="mt-1 bg-rose-600 hover:bg-rose-500 text-white px-2 py-0.5 rounded text-[10px] font-bold">🔨 Instant Ban UID</button>` : ''}
+          </div>
+        ` + logBox.innerHTML;
       } catch (e) {
         console.warn("Scan simulation error:", e);
       }
@@ -495,7 +505,7 @@
 
     function banPlayerDirect(uid) {
       document.getElementById('banUid').value = uid;
-      document.getElementById('banReason').value = "AI Live Radar Flagged Suspicious Activity";
+      document.getElementById('banReason').value = "Confirmed Cheat Anomaly via AI Spectator Scanner";
       banPlayer();
     }
 

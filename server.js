@@ -38,7 +38,7 @@ const upload = multer({ dest: uploadDir });
 // --- MIDDLEWARE ---
 app.use(cors());
 app.use(express.json());
-app.use(express.static('public')); // Serve static frontend files from /public
+app.use(express.static('public')); // Serve static frontend files from /public folder
 
 let ACTIVE_TOURNAMENT_ID = null;
 
@@ -136,7 +136,7 @@ app.post('/api/admin/ban-player', async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: `UID ${bgmiUid} BANNED from tournaments!`,
+      message: `UID ${bgmiUid} successfully BANNED from tournaments!`,
       bannedPlayer
     });
   } catch (err) {
@@ -169,34 +169,50 @@ app.post('/api/admin/unban-player', async (req, res) => {
   }
 });
 
-// 6. REAL-TIME AI SPECTATOR ANOMALY DETECTOR
+// 6. REAL-TIME AI SPECTATOR ANOMALY DETECTOR RADAR
 app.post('/api/admin/flag-suspicious', async (req, res) => {
   try {
-    const { teamName, playerIgn, bgmiUid, kills, headshots } = req.body;
+    const { teamName, playerIgn, bgmiUid, kills, headshots, cheatType } = req.body;
 
     let riskScore = 0;
     let reasons = [];
+    let statusLevel = "🟢 NORMAL";
 
-    // Rule 1: High Kills Check
-    if (Number(kills) >= 12) {
-      riskScore += 40;
-      reasons.push(`Unusually High Kills (${kills} Kills)`);
+    // Rule 1: High Frags Check (20+ Kills = Flag for Review, NOT direct confirmed ban)
+    if (Number(kills) > 20) {
+      riskScore += 35; // Review Needed Category
+      reasons.push(`High Frag Count (${kills} Kills) - Replay Review Recommended`);
+    } else if (Number(kills) >= 15) {
+      riskScore += 10;
+      reasons.push(`Skilled Gameplay (${kills} Kills)`);
     }
 
-    // Rule 2: High Headshot Ratio Check
-    if (Number(headshots) >= 8) {
-      riskScore += 50;
-      reasons.push(`Suspicious Headshot Accuracy (${headshots} Headshots)`);
+    // Rule 2: Specific Cheat Anomaly Detections (Wallhack, Speedhack, No Recoil)
+    if (cheatType === 'WALLHACK' || cheatType === 'ESP') {
+      riskScore += 60;
+      reasons.push(`🚨 Wallhack / ESP / Through-Wall Anomaly Detected`);
+    } else if (cheatType === 'SPEED_HACK') {
+      riskScore += 65;
+      reasons.push(`🚨 Speed Hack / Position Glitch Anomaly`);
+    } else if (cheatType === 'NO_RECOIL') {
+      riskScore += 55;
+      reasons.push(`🚨 Impossible Spray / No-Recoil Pattern`);
     }
 
-    const isSuspicious = riskScore >= 50;
+    // Determine Final Status Flag
+    if (riskScore >= 60) {
+      statusLevel = "🚨 CONFIRMED HIGH RISK (POSSIBLE CHEATER)";
+    } else if (riskScore >= 30) {
+      statusLevel = "⚠️ MAYBE SUSPICIOUS (MANUAL SPECTATOR REVIEW NEEDED)";
+    }
 
     res.status(200).json({
       success: true,
-      isSuspicious,
+      isSuspicious: riskScore >= 30,
+      isConfirmedCheat: riskScore >= 60,
       riskScore: `${riskScore}%`,
-      flag: isSuspicious ? "🚨 HIGH RISK (SUSPICIOUS)" : "🟢 NORMAL",
-      playerDetails: { teamName, playerIgn, bgmiUid, kills, headshots },
+      flag: statusLevel,
+      playerDetails: { teamName, playerIgn, bgmiUid, kills, headshots, cheatType },
       reasons
     });
   } catch (err) {
@@ -272,7 +288,7 @@ app.get('/api/tournaments/teams', async (req, res) => {
 // 👥 TEAM REGISTRATION & SLOT ALLOCATION
 // ==========================================
 
-// 10. REGISTER TEAM / SQUAD (WITH ANTI-CHEAT & UTR)
+// 10. REGISTER TEAM / SQUAD (WITH ANTI-CHEAT & UTR VERIFICATION)
 app.post('/api/teams/register', async (req, res) => {
   try {
     const { teamName, captainIgn, captainUid, members, transactionId } = req.body;
@@ -289,7 +305,7 @@ app.post('/api/teams/register', async (req, res) => {
     // Collect all squad UIDs
     const allSquadUids = [captainUid, ...(members ? members.map(m => m.bgmiUid) : [])].filter(Boolean);
 
-    // 🛡️ ANTI-CHEAT CHECK: Blacklist Verification
+    // 🛡️ 1. ANTI-CHEAT CHECK: Blacklist Verification
     const isBanned = await Blacklist.findOne({ bgmiUid: { $in: allSquadUids } });
     if (isBanned) {
       return res.status(400).json({ 
@@ -298,7 +314,7 @@ app.post('/api/teams/register', async (req, res) => {
       });
     }
 
-    // ⚠️ DUPLICATE CHECK: Verify if UID is already registered
+    // ⚠️ 2. DUPLICATE CHECK: Verify if UID is already registered
     const existingTeam = await Team.findOne({
       tournamentId,
       $or: [
