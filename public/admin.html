@@ -83,7 +83,7 @@
             <h2 class="text-lg font-extrabold text-cyan-400 flex items-center gap-2">
               🎥 Live Spectator Screen AI Anti-Cheat Scan
             </h2>
-            <p class="text-xs text-slate-400 mt-0.5">Connect spectator stream screen to auto-detect suspicious kill spikes & headshots in real-time.</p>
+            <p class="text-xs text-slate-400 mt-0.5">Targeted OCR auto-scans Top-Left killfeed to detect suspicious kill spikes in real-time.</p>
           </div>
           <span id="aiEngineStatus" class="bg-slate-700 text-slate-300 text-xs px-3 py-1 rounded-full font-bold">
             ⚪ Scanner Offline
@@ -352,7 +352,7 @@
         statusTag.className = "bg-emerald-900 text-emerald-300 text-xs px-3 py-1 rounded-full font-bold animate-pulse";
         statusTag.innerText = "🟢 AI Live Radar Active";
 
-        // Start automatic video frame OCR scanning loop (scans every 4 seconds)
+        // Start targeted video frame OCR scanning loop
         startLiveFrameScan();
       } catch (err) {
         alert("Screen sharing cancelled or permission denied.");
@@ -373,7 +373,7 @@
       statusTag.innerText = "⚪ Scanner Offline";
     }
 
-    // 6. 🤖 REAL-TIME AUTO VIDEO FRAME OCR SCANNER LOOP
+    // 6. 🤖 REAL-TIME AUTO VIDEO FRAME OCR SCANNER (CROPPED & FILTERED FOR ACCURACY)
     function startLiveFrameScan() {
       const video = document.getElementById('spectatorVideo');
       const canvas = document.createElement('canvas');
@@ -383,33 +383,47 @@
       scanInterval = setInterval(async () => {
         if (!streamMedia || video.paused || video.ended) return;
 
-        canvas.width = video.videoWidth || 640;
-        canvas.height = video.videoHeight || 360;
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const originalWidth = video.videoWidth || 1280;
+        const originalHeight = video.videoHeight || 720;
+
+        // 🎯 CROP REGION: Crops ONLY top-left 45% x 40% game screen (ignores bottom streamer overlays/phone numbers)
+        const cropX = 0;
+        const cropY = 0;
+        const cropWidth = Math.floor(originalWidth * 0.45);
+        const cropHeight = Math.floor(originalHeight * 0.40);
+
+        canvas.width = cropWidth;
+        canvas.height = cropHeight;
+
+        // Draw only the cropped killfeed area onto the canvas
+        ctx.drawImage(video, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
 
         const frameImage = canvas.toDataURL('image/jpeg');
 
         try {
-          // Client-side OCR reads text from current live frame
+          // Client-side OCR processing on cropped image
           const result = await Tesseract.recognize(frameImage, 'eng');
           const detectedText = result.data.text.toLowerCase();
 
-          const numbersFound = detectedText.match(/\d+/g) || [];
-          const maxNum = numbersFound.length > 0 ? Math.max(...numbersFound.map(Number)) : 0;
+          // 🛑 STRICT FILTER: Extract only 1-2 digit numbers (8-35 range) to reject 10-digit mobile numbers/view counts
+          const allNumbers = detectedText.match(/\b\d{1,2}\b/g) || [];
+          const validKills = allNumbers.map(Number).filter(n => n >= 8 && n <= 35);
 
-          // If suspicious keywords or numbers >= 10 are recognized in frame
-          if (maxNum >= 10 || detectedText.includes('headshot') || detectedText.includes('wipe')) {
-            const detectedKills = maxNum >= 10 ? maxNum : 12;
+          const maxNum = validKills.length > 0 ? Math.max(...validKills) : 0;
+
+          // Trigger alert only if realistic kill count or headshot keyword detected
+          if (maxNum >= 10 || (detectedText.includes('headshot') && maxNum >= 8)) {
+            const detectedKills = maxNum || 12;
 
             const res = await fetch('/api/admin/flag-suspicious', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                teamName: "Live Stream Team",
-                playerIgn: "LivePlayer",
-                bgmiUid: "AUTO_DETECTED",
+                teamName: "Spectated Squad",
+                playerIgn: "Suspicious Player",
+                bgmiUid: "LIVE_STREAM_PLAYER",
                 kills: detectedKills,
-                headshots: Math.floor(detectedKills * 0.7)
+                headshots: Math.floor(detectedKills * 0.6)
               })
             });
             const data = await res.json();
@@ -421,16 +435,16 @@
                     <span>🚨 ${data.flag}</span>
                     <span class="text-rose-400">${data.riskScore}</span>
                   </div>
-                  <p class="text-[11px] text-white">Live Frame OCR Detected: <span class="font-mono text-amber-300">${detectedKills} Kills / Headshots</span></p>
+                  <p class="text-[11px] text-white">Targeted OCR Detected: <span class="font-mono text-amber-300">${detectedKills} Kills / Headshots</span></p>
                   <p class="text-[10px] text-rose-300">${data.reasons.join(' | ')}</p>
                 </div>
               ` + logBox.innerHTML;
             }
           }
         } catch (e) {
-          console.warn("Live frame processing...", e);
+          console.warn("Live frame OCR processing...", e);
         }
-      }, 4000); // Frame capture interval: 4 seconds
+      }, 3500); // Scans cropped video stream frame every 3.5 seconds
     }
 
     // 7. SIMULATE AI SCAN
