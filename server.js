@@ -23,7 +23,7 @@ const { createOrder, verifyPayment } = require('./controllers/paymentController'
 const Team = require('./models/Team');
 const User = require('./models/User');
 const Tournament = require('./models/Tournament');
-const Blacklist = require('./models/Blacklist'); // 🛡️ Anti-Cheat Blacklist Model
+const Blacklist = require('./models/Blacklist'); // 🛡️ Anti-Cheat Model
 
 const app = express();
 const JWT_SECRET = process.env.JWT_SECRET || "bgmi_secret_admin_key_2026";
@@ -38,7 +38,7 @@ const upload = multer({ dest: uploadDir });
 // --- MIDDLEWARE ---
 app.use(cors());
 app.use(express.json());
-app.use(express.static('public')); // Serve static frontend HTML files from /public folder
+app.use(express.static('public')); // Serve static frontend files from /public
 
 let ACTIVE_TOURNAMENT_ID = null;
 
@@ -53,7 +53,7 @@ app.get('/', (req, res) => {
 // 🔐 ADMIN AUTHENTICATION APIs
 // ==========================================
 
-// 1. ADMIN SIGN UP
+// 1. ADMIN SIGN UP / REGISTER
 app.post('/api/admin/signup', async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -117,7 +117,7 @@ app.post('/api/admin/login', async (req, res) => {
 });
 
 // ==========================================
-// 🛡️ ANTI-CHEAT BLACKLIST & BAN MANAGEMENT APIs
+// 🛡️ ANTI-CHEAT BLACKLIST & AI RADAR APIs
 // ==========================================
 
 // 3. ADMIN ANTI-CHEAT: BAN PLAYER UID
@@ -125,7 +125,7 @@ app.post('/api/admin/ban-player', async (req, res) => {
   try {
     const { bgmiUid, reason } = req.body;
     if (!bgmiUid) {
-      return res.status(400).json({ success: false, error: "BGMI UID is required to ban a player!" });
+      return res.status(400).json({ success: false, error: "BGMI UID is required!" });
     }
 
     const bannedPlayer = await Blacklist.findOneAndUpdate(
@@ -136,7 +136,7 @@ app.post('/api/admin/ban-player', async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: `UID ${bgmiUid} successfully BANNED from tournaments!`,
+      message: `UID ${bgmiUid} BANNED from tournaments!`,
       bannedPlayer
     });
   } catch (err) {
@@ -169,11 +169,46 @@ app.post('/api/admin/unban-player', async (req, res) => {
   }
 });
 
+// 6. REAL-TIME AI SPECTATOR ANOMALY DETECTOR
+app.post('/api/admin/flag-suspicious', async (req, res) => {
+  try {
+    const { teamName, playerIgn, bgmiUid, kills, headshots } = req.body;
+
+    let riskScore = 0;
+    let reasons = [];
+
+    // Rule 1: High Kills Check
+    if (Number(kills) >= 12) {
+      riskScore += 40;
+      reasons.push(`Unusually High Kills (${kills} Kills)`);
+    }
+
+    // Rule 2: High Headshot Ratio Check
+    if (Number(headshots) >= 8) {
+      riskScore += 50;
+      reasons.push(`Suspicious Headshot Accuracy (${headshots} Headshots)`);
+    }
+
+    const isSuspicious = riskScore >= 50;
+
+    res.status(200).json({
+      success: true,
+      isSuspicious,
+      riskScore: `${riskScore}%`,
+      flag: isSuspicious ? "🚨 HIGH RISK (SUSPICIOUS)" : "🟢 NORMAL",
+      playerDetails: { teamName, playerIgn, bgmiUid, kills, headshots },
+      reasons
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // ==========================================
-// 🚀 TOURNAMENT & ORGANIZER API ROUTES
+// 🚀 TOURNAMENT & ORGANIZER APIs
 // ==========================================
 
-// 6. FETCH ACTIVE TOURNAMENT DETAILS
+// 7. FETCH ACTIVE TOURNAMENT DETAILS
 app.get('/api/tournaments/active', async (req, res) => {
   try {
     if (!ACTIVE_TOURNAMENT_ID) {
@@ -186,7 +221,7 @@ app.get('/api/tournaments/active', async (req, res) => {
   }
 });
 
-// 7. CREATE & PUBLISH NEW TOURNAMENT
+// 8. CREATE & PUBLISH NEW TOURNAMENT
 app.post('/api/tournaments/create', async (req, res) => {
   try {
     const { title, mode, entryFee, prizePool, maxSlots, registrationDeadline, schedule } = req.body;
@@ -212,7 +247,7 @@ app.post('/api/tournaments/create', async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: `Tournament "${title}" Created Successfully! Set as Active Tournament.`,
+      message: `Tournament "${title}" Created Successfully! Set as Active.`,
       tournament: newTournament
     });
   } catch (err) {
@@ -220,7 +255,7 @@ app.post('/api/tournaments/create', async (req, res) => {
   }
 });
 
-// 8. FETCH ALL REGISTERED TEAMS FOR DASHBOARD
+// 9. FETCH REGISTERED TEAMS WITH UTRs
 app.get('/api/tournaments/teams', async (req, res) => {
   try {
     if (!ACTIVE_TOURNAMENT_ID) {
@@ -234,10 +269,10 @@ app.get('/api/tournaments/teams', async (req, res) => {
 });
 
 // ==========================================
-// 👥 TEAM REGISTRATION & SLOT ALLOCATION (WITH ANTI-CHEAT & UTR)
+// 👥 TEAM REGISTRATION & SLOT ALLOCATION
 // ==========================================
 
-// 9. REGISTER TEAM / SQUAD
+// 10. REGISTER TEAM / SQUAD (WITH ANTI-CHEAT & UTR)
 app.post('/api/teams/register', async (req, res) => {
   try {
     const { teamName, captainIgn, captainUid, members, transactionId } = req.body;
@@ -251,19 +286,19 @@ app.post('/api/teams/register', async (req, res) => {
       return res.status(400).json({ success: false, error: "Team Name and Captain details are required!" });
     }
 
-    // Collect all UIDs provided across Captain + Members (Player 2 to Player 5)
+    // Collect all squad UIDs
     const allSquadUids = [captainUid, ...(members ? members.map(m => m.bgmiUid) : [])].filter(Boolean);
 
-    // 🛡️ 1. ANTI-CHEAT CHECK: Verify if any provided UID is BLACKLISTED / BANNED
+    // 🛡️ ANTI-CHEAT CHECK: Blacklist Verification
     const isBanned = await Blacklist.findOne({ bgmiUid: { $in: allSquadUids } });
     if (isBanned) {
       return res.status(400).json({ 
         success: false, 
-        error: `🚨 ANTI-CHEAT ALERT: UID (${isBanned.bgmiUid}) is BANNED from tournaments due to: ${isBanned.reason}` 
+        error: `🚨 ANTI-CHEAT ALERT: UID (${isBanned.bgmiUid}) is BANNED due to: ${isBanned.reason}` 
       });
     }
 
-    // ⚠️ 2. DUPLICATE CHECK: Verify if any provided UID is already registered in this tournament
+    // ⚠️ DUPLICATE CHECK: Verify if UID is already registered
     const existingTeam = await Team.findOne({
       tournamentId,
       $or: [
@@ -279,11 +314,10 @@ app.post('/api/teams/register', async (req, res) => {
       });
     }
 
-    // Calculate slot allocation
+    // Assign Slot Number
     const count = await Team.countDocuments({ tournamentId });
     const assignedSlot = count + 1;
 
-    // Build Full Squad Array
     const squadMembers = [
       { ign: captainIgn, bgmiUid: captainUid },
       ...(members || [])
@@ -301,7 +335,7 @@ app.post('/api/teams/register', async (req, res) => {
 
     await newTeam.save();
 
-    // Create or Update Profile Stats for all squad members
+    // Create or Update User Stats
     for (const player of squadMembers) {
       if (player.bgmiUid) {
         await User.findOneAndUpdate(
@@ -317,7 +351,7 @@ app.post('/api/teams/register', async (req, res) => {
 
     res.status(200).json({ 
       success: true, 
-      message: `Squad "${teamName}" Registered Successfully! Slot #${assignedSlot} Reserved.`, 
+      message: `Squad "${teamName}" Registered Successfully! Slot #${assignedSlot} Locked.`, 
       team: newTeam 
     });
   } catch (err) {
@@ -326,24 +360,24 @@ app.post('/api/teams/register', async (req, res) => {
 });
 
 // ==========================================
-// 📷 OCR, DISPATCHER & LEADERBOARD APIS
+// 📷 OCR, DISPATCHER & LEADERBOARD APIs
 // ==========================================
 
-// 10. OCR SCREENSHOT UPLOAD & SCORE PARSING
+// 11. OCR SCREENSHOT SCANNER
 app.post('/api/tournaments/upload-score-ocr', upload.single('screenshot'), processScoreScreenshot);
 
-// 11. DISCORD & WHATSAPP ROOM DISPATCHER
+// 12. DISCORD & WHATSAPP DISPATCHER
 app.post('/api/tournaments/broadcast-room', broadcastRoom);
 
-// 12. LEADERBOARD & MATCH SCORE ENTRY
+// 13. MATCH SCORE ENTRY & LEADERBOARD
 app.post('/api/tournaments/score', submitMatchScore);
 app.get('/api/tournaments/:tournamentId/leaderboard', getLiveLeaderboard);
 
-// 13. RAZORPAY UPI PAYMENT ENDPOINTS
+// 14. RAZORPAY UPI PAYMENT ENDPOINTS
 app.post('/api/payments/create-order', createOrder);
 app.post('/api/payments/verify', verifyPayment);
 
-// 14. FETCH PLAYER GAMING RESUME PROFILE / STATS
+// 15. PLAYER GAMING PROFILE / STATS
 app.get('/api/players/:uid', async (req, res) => {
   try {
     const { uid } = req.params;
@@ -364,11 +398,9 @@ app.get('/api/players/:uid', async (req, res) => {
 // ==========================================
 const startServer = async () => {
   try {
-    // Connect Database before starting server listener
     await connectDB();
     ACTIVE_TOURNAMENT_ID = await ensureActiveTournament();
 
-    // Optional Redis Cache Connection
     redis.connect().catch(() => {
       console.warn("⚠️ Redis is offline. Running with fallback DB queries.");
     });

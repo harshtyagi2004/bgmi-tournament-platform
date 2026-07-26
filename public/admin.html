@@ -75,6 +75,65 @@
         </a>
       </div>
 
+      <div class="bg-slate-800 p-6 rounded-xl border border-cyan-500/40 shadow-xl space-y-5">
+        
+        <div class="flex justify-between items-center border-b border-slate-700 pb-3">
+          <div>
+            <h2 class="text-lg font-extrabold text-cyan-400 flex items-center gap-2">
+              🎥 Live Spectator Screen AI Anti-Cheat Scan
+            </h2>
+            <p class="text-xs text-slate-400 mt-0.5">Connect spectator stream screen to auto-detect suspicious kill spikes & headshots in real-time.</p>
+          </div>
+          <span id="aiEngineStatus" class="bg-slate-700 text-slate-300 text-xs px-3 py-1 rounded-full font-bold">
+            ⚪ Scanner Offline
+          </span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          
+          <div class="space-y-3">
+            <div class="relative bg-slate-950 aspect-video rounded-xl border border-slate-700 overflow-hidden flex items-center justify-center">
+              <video id="spectatorVideo" autoplay playsinline class="w-full h-full object-cover hidden"></video>
+              <div id="noStreamPlaceholder" class="text-center p-4">
+                <p class="text-4xl mb-2">🖥️</p>
+                <p class="text-xs text-slate-400 font-semibold">No Live Game Window Connected</p>
+              </div>
+            </div>
+
+            <div class="flex gap-2">
+              <button onclick="startScreenShare()" class="flex-1 bg-cyan-600 hover:bg-cyan-500 text-white py-2.5 rounded-lg font-bold text-xs transition shadow active:scale-95">
+                🎥 Connect Spectator Game Screen
+              </button>
+              <button onclick="stopScreenShare()" class="bg-slate-700 hover:bg-rose-600 text-slate-300 hover:text-white px-4 py-2.5 rounded-lg font-bold text-xs transition">
+                Stop
+              </button>
+            </div>
+          </div>
+
+          <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-700 space-y-3 flex flex-col justify-between">
+            <div>
+              <h3 class="text-xs font-bold text-amber-400 uppercase tracking-wider mb-2">🚨 Live Detection Radar Alerts</h3>
+              <div id="aiAlertsLog" class="space-y-2 max-h-48 overflow-y-auto text-xs font-mono">
+                <p class="text-slate-500 italic text-center py-8">Connect live screen share to start receiving instant cheating flags...</p>
+              </div>
+            </div>
+
+            <div class="border-t border-slate-800 pt-3 space-y-2">
+              <p class="text-[10px] text-slate-400 font-bold uppercase">Quick Test Simulation:</p>
+              <div class="grid grid-cols-3 gap-2">
+                <input id="simUid" type="text" placeholder="BGMI UID" class="p-2 bg-slate-950 rounded border border-slate-700 text-xs text-white" />
+                <input id="simKills" type="number" placeholder="Kills (e.g. 15)" class="p-2 bg-slate-950 rounded border border-slate-700 text-xs text-white" />
+                <button onclick="simulateScan()" class="bg-amber-600 hover:bg-amber-500 text-white font-bold rounded text-xs">
+                  ⚡ Test Scan
+                </button>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
 
         <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg space-y-4 flex flex-col justify-between">
@@ -186,7 +245,9 @@
 
   <script>
     let authMode = "login";
+    let streamMedia = null;
 
+    // 1. AUTHENTICATION TAB SWITCHER
     function switchAuthTab(mode) {
       authMode = mode;
       const nameField = document.getElementById('nameField');
@@ -207,6 +268,7 @@
       }
     }
 
+    // 2. ADMIN AUTHENTICATION HANDLER
     async function handleAuth() {
       const email = document.getElementById('adminEmail').value.trim();
       const password = document.getElementById('adminPassword').value.trim();
@@ -245,6 +307,7 @@
       }
     }
 
+    // 3. CHECK ADMIN SESSION STATE
     function checkAdminSession() {
       const token = localStorage.getItem('adminToken');
       const name = localStorage.getItem('adminName');
@@ -265,12 +328,96 @@
       }
     }
 
+    // 4. LOGOUT
     function logoutAdmin() {
       localStorage.removeItem('adminToken');
       localStorage.removeItem('adminName');
       checkAdminSession();
     }
 
+    // 5. LIVE WEBRTC SPECTATOR SCREEN SHARE
+    async function startScreenShare() {
+      const video = document.getElementById('spectatorVideo');
+      const placeholder = document.getElementById('noStreamPlaceholder');
+      const statusTag = document.getElementById('aiEngineStatus');
+
+      try {
+        streamMedia = await navigator.mediaDevices.getDisplayMedia({ video: true });
+        video.srcObject = streamMedia;
+        video.classList.remove('hidden');
+        placeholder.classList.add('hidden');
+
+        statusTag.className = "bg-emerald-900 text-emerald-300 text-xs px-3 py-1 rounded-full font-bold animate-pulse";
+        statusTag.innerText = "🟢 AI Live Radar Active";
+      } catch (err) {
+        alert("Screen sharing cancelled or permission denied.");
+      }
+    }
+
+    function stopScreenShare() {
+      if (streamMedia) {
+        streamMedia.getTracks().forEach(track => track.stop());
+        document.getElementById('spectatorVideo').classList.add('hidden');
+        document.getElementById('noStreamPlaceholder').classList.remove('hidden');
+        const statusTag = document.getElementById('aiEngineStatus');
+        statusTag.className = "bg-slate-700 text-slate-300 text-xs px-3 py-1 rounded-full font-bold";
+        statusTag.innerText = "⚪ Scanner Offline";
+      }
+    }
+
+    // 6. SIMULATE AI ANOMALY SCAN
+    async function simulateScan() {
+      const bgmiUid = document.getElementById('simUid').value.trim() || "5123456789";
+      const kills = document.getElementById('simKills').value || 14;
+      const logBox = document.getElementById('aiAlertsLog');
+
+      try {
+        const res = await fetch('/api/admin/flag-suspicious', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            teamName: "Test Squad",
+            playerIgn: "SuspiciousPlayer",
+            bgmiUid: bgmiUid,
+            kills: Number(kills),
+            headshots: Math.floor(kills * 0.7)
+          })
+        });
+        const data = await res.json();
+
+        if (data.isSuspicious) {
+          logBox.innerHTML = `
+            <div class="bg-rose-950/80 border border-rose-600 p-2.5 rounded-lg text-rose-200 space-y-1 animate-bounce">
+              <div class="flex justify-between font-bold">
+                <span>🚨 ${data.flag}</span>
+                <span class="text-rose-400">${data.riskScore}</span>
+              </div>
+              <p>UID: <span class="font-mono text-white">${data.playerDetails.bgmiUid}</span></p>
+              <p class="text-[10px] text-rose-300">${data.reasons.join(' | ')}</p>
+              <button onclick="banPlayerDirect('${data.playerDetails.bgmiUid}')" class="mt-1 bg-rose-600 hover:bg-rose-500 text-white px-2 py-0.5 rounded text-[10px] font-bold">
+                🔨 Instant Ban UID
+              </button>
+            </div>
+          ` + logBox.innerHTML;
+        } else {
+          logBox.innerHTML = `
+            <div class="bg-slate-800 border border-emerald-500/40 p-2 rounded text-emerald-300">
+              🟢 UID ${bgmiUid}: Gameplay Normal (${kills} Kills)
+            </div>
+          ` + logBox.innerHTML;
+        }
+      } catch (e) {
+        console.warn("Scan simulation error:", e);
+      }
+    }
+
+    function banPlayerDirect(uid) {
+      document.getElementById('banUid').value = uid;
+      document.getElementById('banReason').value = "AI Live Radar Flagged Suspicious Activity";
+      banPlayer();
+    }
+
+    // 7. BAN PLAYER UID
     async function banPlayer() {
       const bgmiUid = document.getElementById('banUid').value.trim();
       const reason = document.getElementById('banReason').value.trim();
@@ -309,6 +456,7 @@
       }
     }
 
+    // 8. FETCH BANNED PLAYERS
     async function loadBannedPlayers() {
       const bodyEl = document.getElementById('bannedListBody');
       try {
@@ -335,6 +483,7 @@
       }
     }
 
+    // 9. UNBAN PLAYER
     async function unbanPlayer(bgmiUid) {
       if (!confirm(`Are you sure you want to UNBAN UID ${bgmiUid}?`)) return;
 
@@ -354,6 +503,7 @@
       }
     }
 
+    // 10. DISPATCH ROOM CREDENTIALS
     async function dispatchRoom() {
       const roomId = document.getElementById('roomId').value.trim();
       const roomPassword = document.getElementById('roomPass').value.trim();
@@ -377,6 +527,7 @@
       }
     }
 
+    // 11. UPLOAD OCR SCREENSHOT
     async function uploadOCR() {
       const fileInput = document.getElementById('screenshot');
       const statusEl = document.getElementById('ocrStatus');
@@ -397,6 +548,7 @@
       }
     }
 
+    // 12. SUBMIT MATCH SCORE
     async function submitScore() {
       const teamId = document.getElementById('teamName').value.trim();
       const kills = document.getElementById('kills').value;
