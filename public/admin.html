@@ -83,7 +83,7 @@
             <h2 class="text-lg font-extrabold text-cyan-400 flex items-center gap-2">
               🎥 Live Spectator Screen AI Anti-Cheat Radar
             </h2>
-            <p class="text-xs text-slate-400 mt-0.5">Scans 'Eliminations' HUD box (Ignores 'Remaining' players count).</p>
+            <p class="text-xs text-slate-400 mt-0.5">Physical Sub-Cropping Active: Cuts out 'Remaining' box & scans ONLY Eliminations HUD.</p>
           </div>
           <span id="aiEngineStatus" class="bg-slate-700 text-slate-300 text-xs px-3 py-1 rounded-full font-bold">
             ⚪ Scanner Offline
@@ -372,7 +372,7 @@
       statusTag.innerText = "⚪ Scanner Offline";
     }
 
-    // 🤖 REAL-TIME ELIMINATIONS-ONLY OCR SCANNER
+    // 🤖 REAL-TIME TARGETED ELIMINATIONS-ONLY OCR SCANNER
     function startLiveFrameScan() {
       const video = document.getElementById('spectatorVideo');
       const canvas = document.createElement('canvas');
@@ -385,15 +385,18 @@
         const originalWidth = video.videoWidth || 1280;
         const originalHeight = video.videoHeight || 720;
 
-        // CROP TOP-LEFT GAME HUD (Pehela 35% width x 25% height)
-        const cropX = 0;
-        const cropY = 0;
-        const cropWidth = Math.floor(originalWidth * 0.35);
-        const cropHeight = Math.floor(originalHeight * 0.25);
+        // 🎯 PHYSICAL SUB-CROP: 
+        // Starts at 12% width (skips 'Remaining' box) up to 32% width
+        // Height is limited to top 15% where 'Eliminations' box resides
+        const cropX = Math.floor(originalWidth * 0.12);
+        const cropY = Math.floor(originalHeight * 0.01);
+        const cropWidth = Math.floor(originalWidth * 0.20);
+        const cropHeight = Math.floor(originalHeight * 0.14);
 
         canvas.width = cropWidth;
         canvas.height = cropHeight;
 
+        // Draw ONLY the Eliminations Box onto Canvas
         ctx.drawImage(video, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
 
         const frameImage = canvas.toDataURL('image/jpeg');
@@ -402,27 +405,21 @@
           const result = await Tesseract.recognize(frameImage, 'eng');
           const detectedText = result.data.text.toLowerCase();
 
-          // 🎯 EXACT ELIMINATIONS MATCH: Ignores "Remaining" number!
-          // Matches patterns like "eliminations: 5", "elims 12", or "kills 22"
           let extractedKills = 0;
-          
-          const elimMatch = detectedText.match(/(?:elimination|eliminations|elims|kills|elim)\s*[:\s-]*(\d{1,2})/i);
-          
-          if (elimMatch && elimMatch[1]) {
-            extractedKills = Number(elimMatch[1]);
-          } else {
-            // Fallback: If word "remaining" exists, remove it and its number before reading
-            const cleanedText = detectedText.replace(/remaining\s*[:\s-]*\d+/gi, '');
-            const nums = cleanedText.match(/\b\d{1,2}\b/g) || [];
-            const valid = nums.map(Number).filter(n => n >= 15 && n <= 40);
-            if (valid.length > 0) extractedKills = Math.max(...valid);
+
+          // 1. Direct Regex match for numbers inside the Eliminations box
+          const numbersInElimBox = detectedText.match(/\b\d{1,2}\b/g) || [];
+          const validKillNumbers = numbersInElimBox.map(Number).filter(n => n >= 0 && n <= 40);
+
+          if (validKillNumbers.length > 0) {
+            extractedKills = validKillNumbers[0]; // Take the primary number in Eliminations box
           }
 
           let cheatTag = "NONE";
           if (detectedText.includes('wall') || detectedText.includes('esp')) cheatTag = "WALLHACK";
           if (detectedText.includes('speed') || detectedText.includes('fast')) cheatTag = "SPEED_HACK";
 
-          // Trigger API only if actual ELIMINATIONS > 20 or direct cheat detected
+          // Trigger alert ONLY if actual ELIMINATIONS > 20 or direct cheat detected
           if (extractedKills > 20 || cheatTag !== "NONE") {
 
             const res = await fetch('/api/admin/flag-suspicious', {
