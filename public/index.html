@@ -23,16 +23,16 @@
         </h1>
       </div>
       <nav class="flex items-center space-x-4 md:space-x-6 text-xs md:text-sm font-semibold whitespace-nowrap">
-        <a href="index.html" class="text-orange-400 border-b-2 border-orange-400 pb-1 transition-all duration-300 ease-in-out">
+        <a id="nav-dashboard" href="index.html" class="text-orange-400 border-b-2 border-orange-400 pb-1 transition-all duration-300 ease-in-out">
           📊 Dashboard
         </a>
-        <a href="register.html" class="text-slate-400 hover:text-orange-400 hover:border-b-2 hover:border-orange-400 pb-1 transition-all duration-300 ease-in-out">
+        <a id="nav-register" href="register.html" class="text-slate-400 hover:text-orange-400 hover:border-b-2 hover:border-orange-400 pb-1 transition-all duration-300 ease-in-out">
           📝 Team Register
         </a>
-        <a href="profile.html" class="text-slate-400 hover:text-orange-400 hover:border-b-2 hover:border-orange-400 pb-1 transition-all duration-300 ease-in-out">
+        <a id="nav-stats" href="profile.html" class="text-slate-400 hover:text-orange-400 hover:border-b-2 hover:border-orange-400 pb-1 transition-all duration-300 ease-in-out">
           🎮 Player Stats
         </a>
-        <a href="admin.html" class="text-slate-500 hover:text-amber-400 text-xs px-2 py-1 bg-slate-800 rounded border border-slate-700 transition-all duration-300">
+        <a href="admin.html" class="text-slate-500 hover:text-amber-400 text-xs px-2.5 py-1 bg-slate-800 rounded border border-slate-700 transition-all duration-300">
           🔑 Admin Login
         </a>
       </nav>
@@ -133,10 +133,10 @@
   <script>
     let activeTournamentId = null;
 
-    // 1. FETCH ACTIVE TOURNAMENT DETAILS
+    // 1. FETCH ACTIVE TOURNAMENT DETAILS (WITH NO-CACHE TIMESTAMP)
     async function fetchActiveTournament() {
       try {
-        const res = await fetch('/api/tournaments/active');
+        const res = await fetch('/api/tournaments/active?t=' + Date.now(), { cache: 'no-store' });
         const data = await res.json();
 
         if (data.success && data.tournament) {
@@ -155,13 +155,13 @@
       }
     }
 
-    // 2. FETCH LIVE LEADERBOARD
+    // 2. FETCH LIVE LEADERBOARD (WITH NO-CACHE TIMESTAMP)
     async function loadLeaderboard() {
       if (!activeTournamentId) return;
       const bodyEl = document.getElementById('leaderboardBody');
 
       try {
-        const res = await fetch(`/api/tournaments/${activeTournamentId}/leaderboard`);
+        const res = await fetch(`/api/tournaments/${activeTournamentId}/leaderboard?t=` + Date.now(), { cache: 'no-store' });
         const data = await res.json();
 
         if (data.success && data.leaderboard && data.leaderboard.length > 0) {
@@ -183,13 +183,13 @@
       }
     }
 
-    // 3. FETCH REGISTERED SQUADS & UTR CODES
+    // 3. FETCH REGISTERED SQUADS & UTR CODES (WITH NO-CACHE TIMESTAMP)
     async function loadRegisteredTeams() {
       const bodyEl = document.getElementById('registeredTeamsBody');
       const countEl = document.getElementById('registeredCount');
 
       try {
-        const res = await fetch('/api/tournaments/teams');
+        const res = await fetch('/api/tournaments/teams?t=' + Date.now(), { cache: 'no-store' });
         const data = await res.json();
 
         if (data.success && data.teams && data.teams.length > 0) {
@@ -261,7 +261,15 @@
       doc.save(`BGMI_Leaderboard_${Date.now()}.pdf`);
     }
 
-    window.onload = fetchActiveTournament;
+    // 🔄 INITIAL LOAD & 10-SECOND BACKGROUND LIVE AUTO-REFRESH
+    window.onload = () => {
+      fetchActiveTournament();
+
+      // Polling loop: Auto-refresh data every 10 seconds for real-time updates across devices
+      setInterval(() => {
+        fetchActiveTournament();
+      }, 10000);
+    };
   </script>
 </body>
 </html>

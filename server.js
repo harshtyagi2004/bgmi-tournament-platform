@@ -23,7 +23,7 @@ const { createOrder, verifyPayment } = require('./controllers/paymentController'
 const Team = require('./models/Team');
 const User = require('./models/User');
 const Tournament = require('./models/Tournament');
-const Blacklist = require('./models/Blacklist'); // 🛡️ Anti-Cheat Model
+const Blacklist = require('./models/Blacklist');
 
 const app = express();
 const JWT_SECRET = process.env.JWT_SECRET || "bgmi_secret_admin_key_2026";
@@ -38,7 +38,15 @@ const upload = multer({ dest: uploadDir });
 // --- MIDDLEWARE ---
 app.use(cors());
 app.use(express.json());
-app.use(express.static('public')); // Serve static frontend files from /public folder
+
+// ⚡ DISABLE API CACHING FOR REAL-TIME CROSS-DEVICE SYNC
+app.use((req, res, next) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  next();
+});
+
+// Serve static frontend files from /public folder
+app.use(express.static('public'));
 
 let ACTIVE_TOURNAMENT_ID = null;
 
@@ -117,7 +125,7 @@ app.post('/api/admin/login', async (req, res) => {
 });
 
 // ==========================================
-// 🛡️ ANTI-CHEAT BLACKLIST & AI RADAR APIs
+// 🛡️ ANTI-CHEAT BLACKLIST APIs
 // ==========================================
 
 // 3. ADMIN ANTI-CHEAT: BAN PLAYER UID
@@ -169,62 +177,11 @@ app.post('/api/admin/unban-player', async (req, res) => {
   }
 });
 
-// 6. REAL-TIME AI SPECTATOR ANOMALY DETECTOR RADAR
-app.post('/api/admin/flag-suspicious', async (req, res) => {
-  try {
-    const { teamName, playerIgn, bgmiUid, kills, headshots, cheatType } = req.body;
-
-    let riskScore = 0;
-    let reasons = [];
-    let statusLevel = "🟢 NORMAL";
-
-    // Rule 1: High Frags Check (20+ Kills = Flag for Review, NOT direct confirmed ban)
-    if (Number(kills) > 20) {
-      riskScore += 35; // Review Needed Category
-      reasons.push(`High Frag Count (${kills} Kills) - Replay Review Recommended`);
-    } else if (Number(kills) >= 15) {
-      riskScore += 10;
-      reasons.push(`Skilled Gameplay (${kills} Kills)`);
-    }
-
-    // Rule 2: Specific Cheat Anomaly Detections (Wallhack, Speedhack, No Recoil)
-    if (cheatType === 'WALLHACK' || cheatType === 'ESP') {
-      riskScore += 60;
-      reasons.push(`🚨 Wallhack / ESP / Through-Wall Anomaly Detected`);
-    } else if (cheatType === 'SPEED_HACK') {
-      riskScore += 65;
-      reasons.push(`🚨 Speed Hack / Position Glitch Anomaly`);
-    } else if (cheatType === 'NO_RECOIL') {
-      riskScore += 55;
-      reasons.push(`🚨 Impossible Spray / No-Recoil Pattern`);
-    }
-
-    // Determine Final Status Flag
-    if (riskScore >= 60) {
-      statusLevel = "🚨 CONFIRMED HIGH RISK (POSSIBLE CHEATER)";
-    } else if (riskScore >= 30) {
-      statusLevel = "⚠️ MAYBE SUSPICIOUS (MANUAL SPECTATOR REVIEW NEEDED)";
-    }
-
-    res.status(200).json({
-      success: true,
-      isSuspicious: riskScore >= 30,
-      isConfirmedCheat: riskScore >= 60,
-      riskScore: `${riskScore}%`,
-      flag: statusLevel,
-      playerDetails: { teamName, playerIgn, bgmiUid, kills, headshots, cheatType },
-      reasons
-    });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
 // ==========================================
 // 🚀 TOURNAMENT & ORGANIZER APIs
 // ==========================================
 
-// 7. FETCH ACTIVE TOURNAMENT DETAILS
+// 6. FETCH ACTIVE TOURNAMENT DETAILS
 app.get('/api/tournaments/active', async (req, res) => {
   try {
     if (!ACTIVE_TOURNAMENT_ID) {
@@ -237,7 +194,7 @@ app.get('/api/tournaments/active', async (req, res) => {
   }
 });
 
-// 8. CREATE & PUBLISH NEW TOURNAMENT
+// 7. CREATE & PUBLISH NEW TOURNAMENT
 app.post('/api/tournaments/create', async (req, res) => {
   try {
     const { title, mode, entryFee, prizePool, maxSlots, registrationDeadline, schedule } = req.body;
@@ -271,7 +228,7 @@ app.post('/api/tournaments/create', async (req, res) => {
   }
 });
 
-// 9. FETCH REGISTERED TEAMS WITH UTRs
+// 8. FETCH REGISTERED TEAMS WITH UTRs
 app.get('/api/tournaments/teams', async (req, res) => {
   try {
     if (!ACTIVE_TOURNAMENT_ID) {
@@ -288,7 +245,7 @@ app.get('/api/tournaments/teams', async (req, res) => {
 // 👥 TEAM REGISTRATION & SLOT ALLOCATION
 // ==========================================
 
-// 10. REGISTER TEAM / SQUAD (WITH ANTI-CHEAT & UTR VERIFICATION)
+// 9. REGISTER TEAM / SQUAD (WITH ANTI-CHEAT & MANDATORY UTR VERIFICATION)
 app.post('/api/teams/register', async (req, res) => {
   try {
     const { teamName, captainIgn, captainUid, members, transactionId } = req.body;
@@ -379,21 +336,21 @@ app.post('/api/teams/register', async (req, res) => {
 // 📷 OCR, DISPATCHER & LEADERBOARD APIs
 // ==========================================
 
-// 11. OCR SCREENSHOT SCANNER
+// 10. OCR SCREENSHOT SCANNER
 app.post('/api/tournaments/upload-score-ocr', upload.single('screenshot'), processScoreScreenshot);
 
-// 12. DISCORD & WHATSAPP DISPATCHER
+// 11. DISCORD MULTI-TENANT DISPATCHER
 app.post('/api/tournaments/broadcast-room', broadcastRoom);
 
-// 13. MATCH SCORE ENTRY & LEADERBOARD
+// 12. MATCH SCORE ENTRY & LEADERBOARD
 app.post('/api/tournaments/score', submitMatchScore);
 app.get('/api/tournaments/:tournamentId/leaderboard', getLiveLeaderboard);
 
-// 14. RAZORPAY UPI PAYMENT ENDPOINTS
+// 13. RAZORPAY UPI PAYMENT ENDPOINTS
 app.post('/api/payments/create-order', createOrder);
 app.post('/api/payments/verify', verifyPayment);
 
-// 15. PLAYER GAMING PROFILE / STATS
+// 14. PLAYER GAMING PROFILE / STATS
 app.get('/api/players/:uid', async (req, res) => {
   try {
     const { uid } = req.params;
