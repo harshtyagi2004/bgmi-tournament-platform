@@ -133,7 +133,7 @@
   <script>
     let activeTournamentId = null;
 
-    // 1. FETCH ACTIVE TOURNAMENT DETAILS (WITH NO-CACHE TIMESTAMP)
+    // 1. FETCH ACTIVE TOURNAMENT DETAILS (WITH NO-CACHE TIMESTAMP & EMPTY STATE CHECK)
     async function fetchActiveTournament() {
       try {
         const res = await fetch('/api/tournaments/active?t=' + Date.now(), { cache: 'no-store' });
@@ -148,7 +148,13 @@
           loadLeaderboard();
           loadRegisteredTeams();
         } else {
+          // Clean empty state handling when no tournament exists in DB
           document.getElementById('activeTitle').innerText = 'No Active Tournament';
+          document.getElementById('activeMode').innerText = 'Mode: N/A';
+          document.getElementById('activePrize').innerText = '₹0';
+          document.getElementById('registeredCount').innerText = '0 Squads';
+          document.getElementById('registeredTeamsBody').innerHTML = `<tr><td colspan="5" class="text-center py-6 text-slate-500 italic">No active tournament currently available. Admin can host one from Admin Panel.</td></tr>`;
+          document.getElementById('leaderboardBody').innerHTML = `<tr><td colspan="6" class="text-center py-6 text-slate-500 italic">No active tournament found.</td></tr>`;
         }
       } catch (err) {
         console.warn("Could not fetch active tournament:", err);

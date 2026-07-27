@@ -61,7 +61,6 @@ app.get('/', (req, res) => {
 // 🔐 ADMIN AUTHENTICATION APIs
 // ==========================================
 
-// 1. ADMIN SIGN UP / REGISTER
 app.post('/api/admin/signup', async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -96,7 +95,6 @@ app.post('/api/admin/signup', async (req, res) => {
   }
 });
 
-// 2. ADMIN SIGN IN / LOGIN
 app.post('/api/admin/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -175,13 +173,12 @@ app.post('/api/admin/unban-player', async (req, res) => {
 });
 
 // ==========================================
-// 🚀 REALTIME TOURNAMENT APIs (ALWAYS FETCH FROM DB)
+// 🚀 REALTIME TOURNAMENT APIs
 // ==========================================
 
-// 6. FETCH ACTIVE TOURNAMENT DIRECTLY FROM DATABASE
+// 6. FETCH LATEST ACTIVE TOURNAMENT FROM DATABASE
 app.get('/api/tournaments/active', async (req, res) => {
   try {
-    // Memory variable bypass: Always fetch the latest created tournament from MongoDB
     const tournament = await Tournament.findOne().sort({ createdAt: -1 });
     if (!tournament) {
       return res.status(200).json({ success: true, tournament: null });
@@ -247,12 +244,11 @@ app.post('/api/teams/register', async (req, res) => {
   try {
     const { teamName, captainIgn, captainUid, members, transactionId } = req.body;
 
-    // Get latest active tournament ID directly from DB
     const latestTournament = await Tournament.findOne().sort({ createdAt: -1 });
     const tournamentId = req.body.tournamentId || (latestTournament ? latestTournament._id : null);
 
     if (!tournamentId) {
-      return res.status(400).json({ success: false, error: "No active tournament found in Database." });
+      return res.status(400).json({ success: false, error: "No active tournament found. Please wait for Admin to host one." });
     }
 
     if (!teamName || !captainIgn || !captainUid) {
@@ -357,7 +353,7 @@ app.get('/api/players/:uid', async (req, res) => {
 });
 
 // ==========================================
-// 🛠️ SERVER INITIALIZATION & PORT FAILOVER
+// 🛠️ SERVER INITIALIZATION
 // ==========================================
 const startServer = async () => {
   try {

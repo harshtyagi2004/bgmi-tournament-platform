@@ -1,32 +1,20 @@
 const Tournament = require('../models/Tournament');
-const mongoose = require('mongoose');
 
 /**
- * Ensures a valid Tournament exists in MongoDB to attach registrations and scores to.
+ * Ensures clean database startup without creating dummy/fake tournaments.
  */
 async function ensureActiveTournament() {
   try {
-    let tournament = await Tournament.findOne({ status: 'UPCOMING' });
-    
-    if (!tournament) {
-      tournament = new Tournament({
-        title: "BGMI India Championship 2026",
-        mode: "SQUAD",
-        entryFee: 50,
-        prizePool: 10000,
-        maxSlots: 25,
-        status: "UPCOMING",
-        // System / Default Organizer ID pass kar rahe hain validation pass karne ke liye
-        organizerId: new mongoose.Types.ObjectId() 
-      });
-      
-      await tournament.save();
-      console.log(`✅ Default Active Tournament Created with ID: ${tournament._id}`);
+    const existing = await Tournament.findOne().sort({ createdAt: -1 });
+    if (existing) {
+      console.log(`🟢 Active Tournament Found: "${existing.title}" (ID: ${existing._id})`);
+      return existing._id.toString();
+    } else {
+      console.log("ℹ️ No active tournament in database. Waiting for Admin to create one.");
+      return null;
     }
-    
-    return tournament._id.toString();
   } catch (err) {
-    console.error("Database Seeding Error:", err.message);
+    console.error("Database Check Error:", err.message);
     return null;
   }
 }
