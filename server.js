@@ -83,7 +83,7 @@ app.post('/api/admin/signup', async (req, res) => {
     });
 
     await newAdmin.save();
-    const token = jwt.encode({ id: newAdmin._id, role: 'ADMIN' }, JWT_SECRET);
+    const token = jwt.encode({ id: newAdmin._id, email: newAdmin.email, role: 'ADMIN' }, JWT_SECRET);
 
     res.status(200).json({
       success: true,
@@ -111,7 +111,7 @@ app.post('/api/admin/login', async (req, res) => {
       return res.status(400).json({ success: false, error: "Invalid Admin Email or Password!" });
     }
 
-    const token = jwt.encode({ id: admin._id, role: 'ADMIN' }, JWT_SECRET);
+    const token = jwt.encode({ id: admin._id, email: admin.email, role: 'ADMIN' }, JWT_SECRET);
 
     res.status(200).json({
       success: true,
@@ -124,7 +124,31 @@ app.post('/api/admin/login', async (req, res) => {
   }
 });
 
-// 🗑️ 3. RESET / CLEAR DUMMY TOURNAMENTS FROM MONGODB
+// 3. STRICT TOKEN VERIFY ENDPOINT FOR NEW DEVICES
+app.post('/api/admin/verify', async (req, res) => {
+  try {
+    const { token } = req.body;
+    if (!token) {
+      return res.status(401).json({ success: false, error: "No session token provided!" });
+    }
+
+    const decoded = jwt.decode(token, JWT_SECRET);
+    const admin = await User.findById(decoded.id);
+
+    if (!admin || admin.role !== "ADMIN") {
+      return res.status(401).json({ success: false, error: "Invalid admin session!" });
+    }
+
+    res.status(200).json({
+      success: true,
+      admin: { name: admin.name, email: admin.email }
+    });
+  } catch (err) {
+    res.status(401).json({ success: false, error: "Session expired or invalid token!" });
+  }
+});
+
+// 4. RESET / CLEAR DUMMY TOURNAMENTS FROM MONGODB
 app.post('/api/admin/reset-tournaments', async (req, res) => {
   try {
     await Tournament.deleteMany({});
@@ -192,7 +216,6 @@ app.post('/api/admin/unban-player', async (req, res) => {
 // 🚀 REALTIME TOURNAMENT APIs
 // ==========================================
 
-// 4. FETCH LATEST ACTIVE TOURNAMENT DIRECTLY FROM DATABASE
 app.get('/api/tournaments/active', async (req, res) => {
   try {
     const tournament = await Tournament.findOne().sort({ createdAt: -1 });
@@ -205,7 +228,6 @@ app.get('/api/tournaments/active', async (req, res) => {
   }
 });
 
-// 5. CREATE & PUBLISH NEW TOURNAMENT
 app.post('/api/tournaments/create', async (req, res) => {
   try {
     const { title, mode, entryFee, prizePool, maxSlots, registrationDeadline, schedule } = req.body;
@@ -238,7 +260,6 @@ app.post('/api/tournaments/create', async (req, res) => {
   }
 });
 
-// 6. FETCH REGISTERED TEAMS FOR LATEST ACTIVE TOURNAMENT
 app.get('/api/tournaments/teams', async (req, res) => {
   try {
     const latestTournament = await Tournament.findOne().sort({ createdAt: -1 });

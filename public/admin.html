@@ -256,35 +256,55 @@
       }
     }
 
-    // 3. CHECK ADMIN SESSION STATE
-    function checkAdminSession() {
+    // 3. STRICT DEVICE SESSION CHECK (ALWAYS VERIFY TOKEN WITH BACKEND)
+    async function checkAdminSession() {
       const token = localStorage.getItem('adminToken');
-      const name = localStorage.getItem('adminName');
       const authContainer = document.getElementById('authContainer');
       const adminDashboard = document.getElementById('adminDashboard');
       const logoutBtn = document.getElementById('logoutBtn');
 
-      if (token && token !== "null" && token !== "undefined") {
-        authContainer.classList.add('hidden');
-        adminDashboard.classList.remove('hidden');
-        logoutBtn.classList.remove('hidden');
-        document.getElementById('adminDisplayName').innerText = name || 'Organizer';
-        loadBannedPlayers();
-      } else {
-        authContainer.classList.remove('hidden');
-        adminDashboard.classList.add('hidden');
-        logoutBtn.classList.add('hidden');
+      if (!token || token === "null" || token === "undefined") {
+        showLoginScreen();
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/admin/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token })
+        });
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+          authContainer.classList.add('hidden');
+          adminDashboard.classList.remove('hidden');
+          logoutBtn.classList.remove('hidden');
+          document.getElementById('adminDisplayName').innerText = data.admin.name || 'Organizer';
+          loadBannedPlayers();
+        } else {
+          // Token invalid or session expired on this device
+          logoutAdmin();
+        }
+      } catch (err) {
+        showLoginScreen();
       }
     }
 
-    // 4. LOGOUT
+    function showLoginScreen() {
+      document.getElementById('authContainer').classList.remove('hidden');
+      document.getElementById('adminDashboard').classList.add('hidden');
+      document.getElementById('logoutBtn').classList.add('hidden');
+    }
+
+    // 4. LOGOUT SESSION ON CURRENT DEVICE
     function logoutAdmin() {
       localStorage.removeItem('adminToken');
       localStorage.removeItem('adminName');
-      checkAdminSession();
+      showLoginScreen();
     }
 
-    // 🗑️ 5. RESET ALL OLD DUMMY TOURNAMENTS FROM MONGODB
+    // 5. RESET ALL OLD DUMMY TOURNAMENTS FROM MONGODB
     async function resetDatabaseTournaments() {
       if (!confirm("Are you sure you want to delete all old dummy tournaments from database?")) return;
 
