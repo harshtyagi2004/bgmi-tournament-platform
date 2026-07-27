@@ -145,7 +145,7 @@ app.post('/api/admin/reset-tournaments', async (req, res) => {
 // 🚀 DYNAMIC MULTI-TENANT TOURNAMENT APIs
 // ==========================================
 
-// 1. FETCH SPECIFIC TOURNAMENT BY ID (OR LATEST)
+// FETCH ACTIVE/SPECIFIC TOURNAMENT
 app.get('/api/tournaments/get', async (req, res) => {
   try {
     const { tid } = req.query;
@@ -161,13 +161,17 @@ app.get('/api/tournaments/get', async (req, res) => {
       return res.status(200).json({ success: true, tournament: null });
     }
 
-    res.status(200).json({ success: true, tournamentId: tournament._id.toString(), tournament });
+    res.status(200).json({ 
+      success: true, 
+      tournamentId: tournament._id.toString(), 
+      tournament 
+    });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
-// 2. CREATE NEW TOURNAMENT (LINKED TO ORGANIZER)
+// CREATE TOURNAMENT
 app.post('/api/tournaments/create', async (req, res) => {
   try {
     const { title, mode, entryFee, prizePool, maxSlots, registrationDeadline, schedule, token } = req.body;
@@ -208,7 +212,7 @@ app.post('/api/tournaments/create', async (req, res) => {
   }
 });
 
-// 3. FETCH REGISTERED TEAMS SPECIFIC TO TOURNAMENT ID
+// FETCH REGISTERED TEAMS
 app.get('/api/tournaments/teams', async (req, res) => {
   try {
     const { tid } = req.query;
@@ -231,7 +235,7 @@ app.get('/api/tournaments/teams', async (req, res) => {
 });
 
 // ==========================================
-// 👥 TEAM REGISTRATION (SPECIFIC TO TOURNAMENT)
+// 👥 TEAM REGISTRATION
 // ==========================================
 
 app.post('/api/teams/register', async (req, res) => {
@@ -263,7 +267,7 @@ app.post('/api/teams/register', async (req, res) => {
       });
     }
 
-    // Duplicate Check within SAME Tournament
+    // Duplicate Check
     const existingTeam = await Team.findOne({
       tournamentId: targetTid,
       $or: [
@@ -310,7 +314,7 @@ app.post('/api/teams/register', async (req, res) => {
 });
 
 // ==========================================
-// 🛡️ ANTI-CHEAT & OTHER ENDPOINTS
+// 🛡️ OTHER ENDPOINTS
 // ==========================================
 
 app.post('/api/admin/ban-player', async (req, res) => {
