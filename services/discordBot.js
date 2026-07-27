@@ -1,49 +1,44 @@
 const axios = require('axios');
 
-async function sendRoomCredentials(roomId, password) {
-  const discordWebhookUrl = process.env.DISCORD_WEBHOOK_URL;
-  const whatsappApiUrl = process.env.WHATSAPP_API_URL; // Optional WhatsApp API
+/**
+ * Sends BGMI Room ID & Password to Discord
+ * Supports Multi-Tenant Client Webhook URLs
+ */
+async function sendRoomCredentials(roomId, roomPassword, customWebhook) {
+  // 1. Client ka Custom Discord Webhook prioritize karein
+  // 2. Fallback to default DISCORD_WEBHOOK_URL from process.env
+  const webhookUrl = customWebhook || process.env.DISCORD_WEBHOOK_URL;
 
-  // 1. DISCORD EMBED BROADCAST LOGIC
-  if (discordWebhookUrl) {
-    try {
-      await axios.post(discordWebhookUrl, {
-        content: "🚨 **NEW BGMI MATCH ROOM DISPATCHED** 🚨",
-        embeds: [
+  if (!webhookUrl) {
+    throw new Error("Discord Webhook URL is missing! Please provide a Webhook URL in Admin Panel.");
+  }
+
+  // Send Discord Embed Message
+  await axios.post(webhookUrl, {
+    embeds: [
+      {
+        title: "🎮 BGMI MATCH ROOM DETAILS",
+        description: "Room Credentials generated! Join as per your allocated slot number.",
+        color: 16738816, // Dark Orange Accent
+        fields: [
           {
-            title: "🎮 Custom Room Credentials",
-            color: 16738560, // Orange Theme
-            fields: [
-              { name: "🔑 Room ID", value: `\`${roomId}\``, inline: true },
-              { name: "🔒 Password", value: `\`${password}\``, inline: true },
-              { name: "⏱️ Instructions", value: "Join your allocated slot immediately! Do not share outside your team.", inline: false }
-            ],
-            footer: { text: "BGMI Tournament Platform Dispatcher Engine" },
-            timestamp: new Date()
+            name: "🔑 ROOM ID",
+            value: `\`${roomId}\``,
+            inline: true
+          },
+          {
+            name: "🔐 PASSWORD",
+            value: `\`${roomPassword}\``,
+            inline: true
           }
-        ]
-      });
-      console.log("✅ Successfully broadcasted credentials to Discord!");
-    } catch (err) {
-      console.error("❌ Discord Webhook Error:", err.message);
-    }
-  } else {
-    console.log("ℹ️ Simulated Discord Broadcast -> Room ID:", roomId, "| Password:", password);
-  }
-
-  // 2. WHATSAPP API BROADCAST LOGIC (Optional API integration)
-  if (whatsappApiUrl) {
-    try {
-      await axios.post(whatsappApiUrl, {
-        message: `🎮 *BGMI MATCH ROOM ALERT*\n\n🔑 *Room ID:* ${roomId}\n🔒 *Password:* ${password}\n\nJoin quickly in your allocated slot!`
-      });
-      console.log("✅ Successfully sent WhatsApp notification!");
-    } catch (err) {
-      console.error("❌ WhatsApp Broadcast Error:", err.message);
-    }
-  }
-
-  return true;
+        ],
+        footer: {
+          text: "Powered by BGMI Esports Tournament Platform"
+        },
+        timestamp: new Date().toISOString()
+      }
+    ]
+  });
 }
 
 module.exports = { sendRoomCredentials };

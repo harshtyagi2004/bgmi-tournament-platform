@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Admin Portal - BGMI Esports</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen p-4 md:p-8 font-sans">
 
@@ -76,81 +75,21 @@
         </a>
       </div>
 
-      <div class="bg-slate-800 p-6 rounded-xl border border-cyan-500/40 shadow-xl space-y-5">
-        
-        <div class="flex justify-between items-center border-b border-slate-700 pb-3">
-          <div>
-            <h2 class="text-lg font-extrabold text-cyan-400 flex items-center gap-2">
-              🎥 Live Spectator Screen AI Anti-Cheat Radar
-            </h2>
-            <p class="text-xs text-slate-400 mt-0.5">Physical Sub-Cropping Active: Cuts out 'Remaining' box & scans ONLY Eliminations HUD.</p>
-          </div>
-          <span id="aiEngineStatus" class="bg-slate-700 text-slate-300 text-xs px-3 py-1 rounded-full font-bold">
-            ⚪ Scanner Offline
-          </span>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          
-          <div class="space-y-3">
-            <div class="relative bg-slate-950 aspect-video rounded-xl border border-slate-700 overflow-hidden flex items-center justify-center">
-              <video id="spectatorVideo" autoplay playsinline class="w-full h-full object-cover hidden"></video>
-              <div id="noStreamPlaceholder" class="text-center p-4">
-                <p class="text-4xl mb-2">🖥️</p>
-                <p class="text-xs text-slate-400 font-semibold">No Live Game Window Connected</p>
-              </div>
-            </div>
-
-            <div class="flex gap-2">
-              <button onclick="startScreenShare()" class="flex-1 bg-cyan-600 hover:bg-cyan-500 text-white py-2.5 rounded-lg font-bold text-xs transition shadow active:scale-95">
-                🎥 Connect Spectator Game Screen
-              </button>
-              <button onclick="stopScreenShare()" class="bg-slate-700 hover:bg-rose-600 text-slate-300 hover:text-white px-4 py-2.5 rounded-lg font-bold text-xs transition">
-                Stop
-              </button>
-            </div>
-          </div>
-
-          <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-700 space-y-3 flex flex-col justify-between">
-            <div>
-              <h3 class="text-xs font-bold text-amber-400 uppercase tracking-wider mb-2">🚨 Live Anomaly Flags & Review Feed</h3>
-              <div id="aiAlertsLog" class="space-y-2 max-h-48 overflow-y-auto text-xs font-mono">
-                <p class="text-slate-500 italic text-center py-8">Connect live screen share to start receiving cheat & review alerts...</p>
-              </div>
-            </div>
-
-            <div class="border-t border-slate-800 pt-3 space-y-2">
-              <p class="text-[10px] text-slate-400 font-bold uppercase">Simulate Anomaly Scan:</p>
-              <div class="grid grid-cols-3 gap-2">
-                <input id="simUid" type="text" placeholder="BGMI UID" class="p-2 bg-slate-950 rounded border border-slate-700 text-xs text-white" />
-                <input id="simKills" type="number" placeholder="Kills (e.g. 22)" class="p-2 bg-slate-950 rounded border border-slate-700 text-xs text-white" />
-                <select id="simCheat" class="p-2 bg-slate-950 rounded border border-slate-700 text-xs text-amber-300">
-                  <option value="NONE">None (Kills Check)</option>
-                  <option value="WALLHACK">Wallhack / ESP</option>
-                  <option value="SPEED_HACK">Speed Hack</option>
-                </select>
-              </div>
-              <button onclick="simulateScan()" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold rounded py-1.5 text-xs">
-                ⚡ Test Anomaly Scan
-              </button>
-            </div>
-
-          </div>
-
-        </div>
-      </div>
-
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
 
         <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg space-y-4 flex flex-col justify-between">
           <div>
             <h2 class="text-lg font-bold text-orange-400 flex items-center gap-2">🔑 Room Dispatcher</h2>
-            <p class="text-xs text-slate-400 mt-1">Broadcast Custom Room ID & Pass directly to Discord Webhook.</p>
+            <p class="text-xs text-slate-400 mt-1">Broadcast Custom Room ID & Pass directly to YOUR Discord Server.</p>
           </div>
           <div class="space-y-3">
+            <div>
+              <label class="text-[10px] font-bold text-slate-300 uppercase">Discord Webhook URL (Optional)</label>
+              <input id="customWebhook" type="url" placeholder="https://discord.com/api/webhooks/..." class="w-full p-2.5 mt-0.5 bg-slate-900 rounded-lg border border-slate-700 text-white text-xs focus:outline-none focus:border-orange-500" />
+            </div>
             <input id="roomId" type="text" placeholder="Room ID (e.g. 849201)" class="w-full p-3 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-orange-500" />
             <input id="roomPass" type="text" placeholder="Room Password (e.g. 1234)" class="w-full p-3 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-orange-500" />
-            <button onclick="dispatchRoom()" class="w-full bg-orange-600 hover:bg-orange-500 text-white p-3 rounded-lg font-bold transition text-sm">
+            <button onclick="dispatchRoom()" class="w-full bg-orange-600 hover:bg-orange-500 text-white p-3 rounded-lg font-bold transition text-sm active:scale-95">
               🚀 Broadcast Credentials
             </button>
           </div>
@@ -159,13 +98,13 @@
 
         <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg space-y-4 flex flex-col justify-between">
           <div>
-            <h2 class="text-lg font-bold text-cyan-400 flex items-center gap-2">📷 Auto OCR Result Reader</h2>
-            <p class="text-xs text-slate-400 mt-1">Upload end-game screenshot to extract match points automatically.</p>
+            <h2 class="text-lg font-bold text-cyan-400 flex items-center gap-2">📷 Post-Match OCR Reader</h2>
+            <p class="text-xs text-slate-400 mt-1">Upload end-game match result screenshot to extract points automatically.</p>
           </div>
           <div class="space-y-3">
             <input id="screenshot" type="file" accept="image/*" class="w-full text-xs text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-cyan-900 file:text-cyan-200 hover:file:bg-cyan-800 cursor-pointer" />
-            <button onclick="uploadOCR()" class="w-full bg-cyan-600 hover:bg-cyan-500 text-white p-3 rounded-lg font-bold transition text-sm">
-              🔍 Scan Result Screenshot
+            <button onclick="uploadOCR()" class="w-full bg-cyan-600 hover:bg-cyan-500 text-white p-3 rounded-lg font-bold transition text-sm active:scale-95">
+              🔍 Scan Scorecard Screenshot
             </button>
           </div>
           <p id="ocrStatus" class="text-xs text-center text-slate-400 h-4 font-semibold"></p>
@@ -182,7 +121,7 @@
               <input id="kills" type="number" placeholder="Kills" class="p-3 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-green-500" />
               <input id="rank" type="number" placeholder="Rank (1-25)" class="p-3 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-green-500" />
             </div>
-            <button onclick="submitScore()" class="w-full bg-green-600 hover:bg-green-500 text-white p-3 rounded-lg font-bold transition text-sm">
+            <button onclick="submitScore()" class="w-full bg-green-600 hover:bg-green-500 text-white p-3 rounded-lg font-bold transition text-sm active:scale-95">
               📈 Update Scoreboard
             </button>
           </div>
@@ -251,9 +190,8 @@
 
   <script>
     let authMode = "login";
-    let streamMedia = null;
-    let scanInterval = null;
 
+    // 1. AUTHENTICATION TAB SWITCHER
     function switchAuthTab(mode) {
       authMode = mode;
       const nameField = document.getElementById('nameField');
@@ -274,6 +212,7 @@
       }
     }
 
+    // 2. ADMIN AUTHENTICATION HANDLER
     async function handleAuth() {
       const email = document.getElementById('adminEmail').value.trim();
       const password = document.getElementById('adminPassword').value.trim();
@@ -312,6 +251,7 @@
       }
     }
 
+    // 3. CHECK ADMIN SESSION STATE
     function checkAdminSession() {
       const token = localStorage.getItem('adminToken');
       const name = localStorage.getItem('adminName');
@@ -332,180 +272,14 @@
       }
     }
 
+    // 4. LOGOUT
     function logoutAdmin() {
       localStorage.removeItem('adminToken');
       localStorage.removeItem('adminName');
       checkAdminSession();
     }
 
-    async function startScreenShare() {
-      const video = document.getElementById('spectatorVideo');
-      const placeholder = document.getElementById('noStreamPlaceholder');
-      const statusTag = document.getElementById('aiEngineStatus');
-
-      try {
-        streamMedia = await navigator.mediaDevices.getDisplayMedia({ video: true });
-        video.srcObject = streamMedia;
-        video.classList.remove('hidden');
-        placeholder.classList.add('hidden');
-
-        statusTag.className = "bg-emerald-900 text-emerald-300 text-xs px-3 py-1 rounded-full font-bold animate-pulse";
-        statusTag.innerText = "🟢 AI Live Radar Active";
-
-        startLiveFrameScan();
-      } catch (err) {
-        alert("Screen sharing cancelled or permission denied.");
-      }
-    }
-
-    function stopScreenShare() {
-      if (streamMedia) {
-        streamMedia.getTracks().forEach(track => track.stop());
-      }
-      if (scanInterval) {
-        clearInterval(scanInterval);
-      }
-      document.getElementById('spectatorVideo').classList.add('hidden');
-      document.getElementById('noStreamPlaceholder').classList.remove('hidden');
-      const statusTag = document.getElementById('aiEngineStatus');
-      statusTag.className = "bg-slate-700 text-slate-300 text-xs px-3 py-1 rounded-full font-bold";
-      statusTag.innerText = "⚪ Scanner Offline";
-    }
-
-    // 🤖 REAL-TIME TARGETED ELIMINATIONS-ONLY OCR SCANNER
-    function startLiveFrameScan() {
-      const video = document.getElementById('spectatorVideo');
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      const logBox = document.getElementById('aiAlertsLog');
-
-      scanInterval = setInterval(async () => {
-        if (!streamMedia || video.paused || video.ended) return;
-
-        const originalWidth = video.videoWidth || 1280;
-        const originalHeight = video.videoHeight || 720;
-
-        // 🎯 PHYSICAL SUB-CROP: 
-        // Starts at 12% width (skips 'Remaining' box) up to 32% width
-        // Height is limited to top 15% where 'Eliminations' box resides
-        const cropX = Math.floor(originalWidth * 0.12);
-        const cropY = Math.floor(originalHeight * 0.01);
-        const cropWidth = Math.floor(originalWidth * 0.20);
-        const cropHeight = Math.floor(originalHeight * 0.14);
-
-        canvas.width = cropWidth;
-        canvas.height = cropHeight;
-
-        // Draw ONLY the Eliminations Box onto Canvas
-        ctx.drawImage(video, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
-
-        const frameImage = canvas.toDataURL('image/jpeg');
-
-        try {
-          const result = await Tesseract.recognize(frameImage, 'eng');
-          const detectedText = result.data.text.toLowerCase();
-
-          let extractedKills = 0;
-
-          // 1. Direct Regex match for numbers inside the Eliminations box
-          const numbersInElimBox = detectedText.match(/\b\d{1,2}\b/g) || [];
-          const validKillNumbers = numbersInElimBox.map(Number).filter(n => n >= 0 && n <= 40);
-
-          if (validKillNumbers.length > 0) {
-            extractedKills = validKillNumbers[0]; // Take the primary number in Eliminations box
-          }
-
-          let cheatTag = "NONE";
-          if (detectedText.includes('wall') || detectedText.includes('esp')) cheatTag = "WALLHACK";
-          if (detectedText.includes('speed') || detectedText.includes('fast')) cheatTag = "SPEED_HACK";
-
-          // Trigger alert ONLY if actual ELIMINATIONS > 20 or direct cheat detected
-          if (extractedKills > 20 || cheatTag !== "NONE") {
-
-            const res = await fetch('/api/admin/flag-suspicious', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                teamName: "Spectated Squad",
-                playerIgn: "SpectatedPlayer",
-                bgmiUid: "LIVE_PLAYER",
-                kills: extractedKills,
-                headshots: Math.floor(extractedKills * 0.5),
-                cheatType: cheatTag
-              })
-            });
-            const data = await res.json();
-
-            if (data.isSuspicious) {
-              const alertStyle = data.isConfirmedCheat
-                ? "bg-rose-950/80 border-rose-600 text-rose-200"
-                : "bg-amber-950/80 border-amber-500 text-amber-200";
-
-              logBox.innerHTML = `
-                <div class="${alertStyle} border p-2.5 rounded-lg space-y-1">
-                  <div class="flex justify-between font-bold">
-                    <span>${data.flag}</span>
-                    <span>Risk: ${data.riskScore}</span>
-                  </div>
-                  <p class="text-[11px]">Eliminations Count: <span class="font-mono text-white font-bold">${extractedKills} Kills</span></p>
-                  <p class="text-[10px] opacity-90">${data.reasons.join(' | ')}</p>
-                </div>
-              ` + logBox.innerHTML;
-            }
-          }
-        } catch (e) {
-          console.warn("Live frame OCR processing...", e);
-        }
-      }, 3500);
-    }
-
-    async function simulateScan() {
-      const bgmiUid = document.getElementById('simUid').value.trim() || "5123456789";
-      const kills = document.getElementById('simKills').value || 22;
-      const cheatType = document.getElementById('simCheat').value;
-      const logBox = document.getElementById('aiAlertsLog');
-
-      try {
-        const res = await fetch('/api/admin/flag-suspicious', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            teamName: "Test Squad",
-            playerIgn: "PlayerX",
-            bgmiUid: bgmiUid,
-            kills: Number(kills),
-            headshots: Math.floor(kills * 0.5),
-            cheatType: cheatType
-          })
-        });
-        const data = await res.json();
-
-        const alertStyle = data.isConfirmedCheat 
-          ? "bg-rose-950/80 border-rose-600 text-rose-200"
-          : (data.isSuspicious ? "bg-amber-950/80 border-amber-500 text-amber-200" : "bg-slate-800 border-emerald-500/40 text-emerald-300");
-
-        logBox.innerHTML = `
-          <div class="${alertStyle} border p-2.5 rounded-lg space-y-1">
-            <div class="flex justify-between font-bold">
-              <span>${data.flag}</span>
-              <span>Risk: ${data.riskScore}</span>
-            </div>
-            <p class="text-[11px]">UID: <span class="font-mono text-white font-bold">${data.playerDetails.bgmiUid}</span> (${kills} Kills)</p>
-            <p class="text-[10px] opacity-90">${data.reasons.join(' | ')}</p>
-            ${data.isConfirmedCheat ? `<button onclick="banPlayerDirect('${data.playerDetails.bgmiUid}')" class="mt-1 bg-rose-600 hover:bg-rose-500 text-white px-2 py-0.5 rounded text-[10px] font-bold">🔨 Instant Ban UID</button>` : ''}
-          </div>
-        ` + logBox.innerHTML;
-      } catch (e) {
-        console.warn("Scan simulation error:", e);
-      }
-    }
-
-    function banPlayerDirect(uid) {
-      document.getElementById('banUid').value = uid;
-      document.getElementById('banReason').value = "Confirmed Cheat Anomaly via AI Spectator Scanner";
-      banPlayer();
-    }
-
+    // 5. BAN PLAYER UID
     async function banPlayer() {
       const bgmiUid = document.getElementById('banUid').value.trim();
       const reason = document.getElementById('banReason').value.trim();
@@ -544,6 +318,7 @@
       }
     }
 
+    // 6. FETCH BANNED PLAYERS
     async function loadBannedPlayers() {
       const bodyEl = document.getElementById('bannedListBody');
       try {
@@ -570,6 +345,7 @@
       }
     }
 
+    // 7. UNBAN PLAYER
     async function unbanPlayer(bgmiUid) {
       if (!confirm(`Are you sure you want to UNBAN UID ${bgmiUid}?`)) return;
 
@@ -589,29 +365,42 @@
       }
     }
 
+    // 8. DISPATCH ROOM CREDENTIALS (WITH CLIENT DISCORD WEBHOOK SUPPORT)
     async function dispatchRoom() {
+      const customWebhook = document.getElementById('customWebhook').value.trim();
       const roomId = document.getElementById('roomId').value.trim();
       const roomPassword = document.getElementById('roomPass').value.trim();
       const statusEl = document.getElementById('dispatchStatus');
 
       if (!roomId || !roomPassword) return alert("Enter Room ID & Password!");
+      
       statusEl.className = "text-xs text-center font-semibold text-orange-400";
-      statusEl.innerText = "⏳ Dispatching...";
+      statusEl.innerText = "⏳ Dispatching to Discord...";
 
       try {
         const res = await fetch('/api/tournaments/broadcast-room', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ roomId, roomPassword })
+          body: JSON.stringify({ roomId, roomPassword, customWebhook })
         });
-        statusEl.className = res.ok ? "text-xs text-center font-semibold text-emerald-400" : "text-xs text-center font-semibold text-rose-400";
-        statusEl.innerText = res.ok ? "✅ Credentials Dispatched!" : "❌ Dispatch Failed.";
+        const data = await res.json();
+        
+        if (res.ok) {
+          statusEl.className = "text-xs text-center font-semibold text-emerald-400";
+          statusEl.innerText = "✅ Credentials Dispatched to Discord!";
+          document.getElementById('roomId').value = "";
+          document.getElementById('roomPass').value = "";
+        } else {
+          statusEl.className = "text-xs text-center font-semibold text-rose-400";
+          statusEl.innerText = `❌ ${data.error || 'Dispatch Failed'}`;
+        }
       } catch (err) {
         statusEl.className = "text-xs text-center font-semibold text-rose-400";
         statusEl.innerText = "❌ Server error occurred.";
       }
     }
 
+    // 9. UPLOAD OCR SCREENSHOT
     async function uploadOCR() {
       const fileInput = document.getElementById('screenshot');
       const statusEl = document.getElementById('ocrStatus');
@@ -632,6 +421,7 @@
       }
     }
 
+    // 10. SUBMIT MATCH SCORE
     async function submitScore() {
       const teamId = document.getElementById('teamName').value.trim();
       const kills = document.getElementById('kills').value;
