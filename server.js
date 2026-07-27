@@ -39,16 +39,16 @@ const upload = multer({ dest: uploadDir });
 app.use(cors());
 app.use(express.json());
 
-// ⚡ DISABLE API CACHING FOR REAL-TIME CROSS-DEVICE SYNC
+// ⚡ STRICT ANTI-CACHING HEADERS FOR ALL DEVICES & BROWSERS
 app.use((req, res, next) => {
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
   next();
 });
 
 // Serve static frontend files from /public folder
 app.use(express.static('public'));
-
-let ACTIVE_TOURNAMENT_ID = null;
 
 // ==========================================
 // 🏠 ROOT REDIRECT ROUTE
@@ -128,7 +128,6 @@ app.post('/api/admin/login', async (req, res) => {
 // 🛡️ ANTI-CHEAT BLACKLIST APIs
 // ==========================================
 
-// 3. ADMIN ANTI-CHEAT: BAN PLAYER UID
 app.post('/api/admin/ban-player', async (req, res) => {
   try {
     const { bgmiUid, reason } = req.body;
@@ -152,7 +151,6 @@ app.post('/api/admin/ban-player', async (req, res) => {
   }
 });
 
-// 4. FETCH ALL BANNED PLAYERS
 app.get('/api/admin/banned-players', async (req, res) => {
   try {
     const bannedList = await Blacklist.find().sort({ createdAt: -1 });
@@ -162,7 +160,6 @@ app.get('/api/admin/banned-players', async (req, res) => {
   }
 });
 
-// 5. UNBAN PLAYER UID
 app.post('/api/admin/unban-player', async (req, res) => {
   try {
     const { bgmiUid } = req.body;
@@ -178,17 +175,18 @@ app.post('/api/admin/unban-player', async (req, res) => {
 });
 
 // ==========================================
-// 🚀 TOURNAMENT & ORGANIZER APIs
+// 🚀 REALTIME TOURNAMENT APIs (ALWAYS FETCH FROM DB)
 // ==========================================
 
-// 6. FETCH ACTIVE TOURNAMENT DETAILS
+// 6. FETCH ACTIVE TOURNAMENT DIRECTLY FROM DATABASE
 app.get('/api/tournaments/active', async (req, res) => {
   try {
-    if (!ACTIVE_TOURNAMENT_ID) {
+    // Memory variable bypass: Always fetch the latest created tournament from MongoDB
+    const tournament = await Tournament.findOne().sort({ createdAt: -1 });
+    if (!tournament) {
       return res.status(200).json({ success: true, tournament: null });
     }
-    const tournament = await Tournament.findById(ACTIVE_TOURNAMENT_ID);
-    res.status(200).json({ success: true, tournamentId: ACTIVE_TOURNAMENT_ID, tournament });
+    res.status(200).json({ success: true, tournamentId: tournament._id.toString(), tournament });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -216,7 +214,6 @@ app.post('/api/tournaments/create', async (req, res) => {
     });
 
     await newTournament.save();
-    ACTIVE_TOURNAMENT_ID = newTournament._id.toString();
 
     res.status(200).json({
       success: true,
@@ -228,13 +225,14 @@ app.post('/api/tournaments/create', async (req, res) => {
   }
 });
 
-// 8. FETCH REGISTERED TEAMS WITH UTRs
+// 8. FETCH REGISTERED TEAMS FOR LATEST ACTIVE TOURNAMENT
 app.get('/api/tournaments/teams', async (req, res) => {
   try {
-    if (!ACTIVE_TOURNAMENT_ID) {
+    const latestTournament = await Tournament.findOne().sort({ createdAt: -1 });
+    if (!latestTournament) {
       return res.status(200).json({ success: true, teams: [] });
     }
-    const teams = await Team.find({ tournamentId: ACTIVE_TOURNAMENT_ID }).sort({ slotNumber: 1 });
+    const teams = await Team.find({ tournamentId: latestTournament._id }).sort({ slotNumber: 1 });
     res.status(200).json({ success: true, teams });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -245,24 +243,25 @@ app.get('/api/tournaments/teams', async (req, res) => {
 // 👥 TEAM REGISTRATION & SLOT ALLOCATION
 // ==========================================
 
-// 9. REGISTER TEAM / SQUAD (WITH ANTI-CHEAT & MANDATORY UTR VERIFICATION)
 app.post('/api/teams/register', async (req, res) => {
   try {
     const { teamName, captainIgn, captainUid, members, transactionId } = req.body;
-    const tournamentId = req.body.tournamentId || ACTIVE_TOURNAMENT_ID;
+
+    // Get latest active tournament ID directly from DB
+    const latestTournament = await Tournament.findOne().sort({ createdAt: -1 });
+    const tournamentId = req.body.tournamentId || (latestTournament ? latestTournament._id : null);
 
     if (!tournamentId) {
-      return res.status(400).json({ success: false, error: "No active tournament found." });
+      return res.status(400).json({ success: false, error: "No active tournament found in Database." });
     }
 
     if (!teamName || !captainIgn || !captainUid) {
       return res.status(400).json({ success: false, error: "Team Name and Captain details are required!" });
     }
 
-    // Collect all squad UIDs
     const allSquadUids = [captainUid, ...(members ? members.map(m => m.bgmiUid) : [])].filter(Boolean);
 
-    // 🛡️ 1. ANTI-CHEAT CHECK: Blacklist Verification
+    // Anti-Cheat Blacklist Check
     const isBanned = await Blacklist.findOne({ bgmiUid: { $in: allSquadUids } });
     if (isBanned) {
       return res.status(400).json({ 
@@ -271,7 +270,7 @@ app.post('/api/teams/register', async (req, res) => {
       });
     }
 
-    // ⚠️ 2. DUPLICATE CHECK: Verify if UID is already registered
+    // Duplicate Check
     const existingTeam = await Team.findOne({
       tournamentId,
       $or: [
@@ -287,7 +286,6 @@ app.post('/api/teams/register', async (req, res) => {
       });
     }
 
-    // Assign Slot Number
     const count = await Team.countDocuments({ tournamentId });
     const assignedSlot = count + 1;
 
@@ -308,7 +306,6 @@ app.post('/api/teams/register', async (req, res) => {
 
     await newTeam.save();
 
-    // Create or Update User Stats
     for (const player of squadMembers) {
       if (player.bgmiUid) {
         await User.findOneAndUpdate(
@@ -336,21 +333,14 @@ app.post('/api/teams/register', async (req, res) => {
 // 📷 OCR, DISPATCHER & LEADERBOARD APIs
 // ==========================================
 
-// 10. OCR SCREENSHOT SCANNER
 app.post('/api/tournaments/upload-score-ocr', upload.single('screenshot'), processScoreScreenshot);
-
-// 11. DISCORD MULTI-TENANT DISPATCHER
 app.post('/api/tournaments/broadcast-room', broadcastRoom);
-
-// 12. MATCH SCORE ENTRY & LEADERBOARD
 app.post('/api/tournaments/score', submitMatchScore);
 app.get('/api/tournaments/:tournamentId/leaderboard', getLiveLeaderboard);
 
-// 13. RAZORPAY UPI PAYMENT ENDPOINTS
 app.post('/api/payments/create-order', createOrder);
 app.post('/api/payments/verify', verifyPayment);
 
-// 14. PLAYER GAMING PROFILE / STATS
 app.get('/api/players/:uid', async (req, res) => {
   try {
     const { uid } = req.params;
@@ -372,7 +362,7 @@ app.get('/api/players/:uid', async (req, res) => {
 const startServer = async () => {
   try {
     await connectDB();
-    ACTIVE_TOURNAMENT_ID = await ensureActiveTournament();
+    await ensureActiveTournament();
 
     redis.connect().catch(() => {
       console.warn("⚠️ Redis is offline. Running with fallback DB queries.");
