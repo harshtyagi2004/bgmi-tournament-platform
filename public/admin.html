@@ -65,14 +65,19 @@
 
     <div id="adminDashboard" class="hidden space-y-8">
       
-      <div class="bg-slate-800 p-5 rounded-xl border border-orange-500/40 flex justify-between items-center shadow-lg">
+      <div class="bg-slate-800 p-5 rounded-xl border border-orange-500/40 flex flex-col md:flex-row justify-between items-center gap-4 shadow-lg">
         <div>
           <p class="text-xs text-slate-400 font-bold uppercase tracking-wider">Active Organizer Session</p>
           <h2 class="text-lg font-extrabold text-white">Welcome, <span id="adminDisplayName" class="text-orange-400">Admin</span> 👑</h2>
         </div>
-        <a href="create-tournament.html" class="bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white px-4 py-2.5 rounded-lg font-bold text-xs shadow-md transition-all duration-300 active:scale-95">
-          🏆 Create New Tournament
-        </a>
+        <div class="flex gap-2">
+          <a href="create-tournament.html" class="bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white px-4 py-2.5 rounded-lg font-bold text-xs shadow-md transition-all duration-300 active:scale-95">
+            🏆 Create New Tournament
+          </a>
+          <button onclick="resetDatabaseTournaments()" class="bg-rose-700 hover:bg-rose-600 text-white px-3 py-2.5 rounded-lg font-bold text-xs transition shadow active:scale-95">
+            🗑️ Clear Old Dummy Data
+          </button>
+        </div>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -279,7 +284,25 @@
       checkAdminSession();
     }
 
-    // 5. BAN PLAYER UID
+    // 🗑️ 5. RESET ALL OLD DUMMY TOURNAMENTS FROM MONGODB
+    async function resetDatabaseTournaments() {
+      if (!confirm("Are you sure you want to delete all old dummy tournaments from database?")) return;
+
+      try {
+        const res = await fetch('/api/admin/reset-tournaments', { method: 'POST' });
+        const data = await res.json();
+        if (res.ok) {
+          alert("✅ " + data.message);
+          window.location.reload();
+        } else {
+          alert("❌ " + (data.error || "Failed to reset database"));
+        }
+      } catch (err) {
+        alert("❌ Error resetting database.");
+      }
+    }
+
+    // 6. BAN PLAYER UID
     async function banPlayer() {
       const bgmiUid = document.getElementById('banUid').value.trim();
       const reason = document.getElementById('banReason').value.trim();
@@ -318,7 +341,7 @@
       }
     }
 
-    // 6. FETCH BANNED PLAYERS
+    // 7. FETCH BANNED PLAYERS
     async function loadBannedPlayers() {
       const bodyEl = document.getElementById('bannedListBody');
       try {
@@ -345,7 +368,7 @@
       }
     }
 
-    // 7. UNBAN PLAYER
+    // 8. UNBAN PLAYER
     async function unbanPlayer(bgmiUid) {
       if (!confirm(`Are you sure you want to UNBAN UID ${bgmiUid}?`)) return;
 
@@ -365,7 +388,7 @@
       }
     }
 
-    // 8. DISPATCH ROOM CREDENTIALS (WITH CLIENT DISCORD WEBHOOK SUPPORT)
+    // 9. DISPATCH ROOM CREDENTIALS (WITH CLIENT DISCORD WEBHOOK SUPPORT)
     async function dispatchRoom() {
       const customWebhook = document.getElementById('customWebhook').value.trim();
       const roomId = document.getElementById('roomId').value.trim();
@@ -400,7 +423,7 @@
       }
     }
 
-    // 9. UPLOAD OCR SCREENSHOT
+    // 10. UPLOAD OCR SCREENSHOT
     async function uploadOCR() {
       const fileInput = document.getElementById('screenshot');
       const statusEl = document.getElementById('ocrStatus');
@@ -421,7 +444,7 @@
       }
     }
 
-    // 10. SUBMIT MATCH SCORE
+    // 11. SUBMIT MATCH SCORE
     async function submitScore() {
       const teamId = document.getElementById('teamName').value.trim();
       const kills = document.getElementById('kills').value;

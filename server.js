@@ -61,6 +61,7 @@ app.get('/', (req, res) => {
 // 🔐 ADMIN AUTHENTICATION APIs
 // ==========================================
 
+// 1. ADMIN SIGN UP / REGISTER
 app.post('/api/admin/signup', async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -95,6 +96,7 @@ app.post('/api/admin/signup', async (req, res) => {
   }
 });
 
+// 2. ADMIN SIGN IN / LOGIN
 app.post('/api/admin/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -116,6 +118,20 @@ app.post('/api/admin/login', async (req, res) => {
       message: "Logged in successfully!",
       token,
       admin: { name: admin.name, email: admin.email }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 🗑️ 3. RESET / CLEAR DUMMY TOURNAMENTS FROM MONGODB
+app.post('/api/admin/reset-tournaments', async (req, res) => {
+  try {
+    await Tournament.deleteMany({});
+    await Team.deleteMany({});
+    res.status(200).json({ 
+      success: true, 
+      message: "Database cleared! All old dummy tournaments removed successfully." 
     });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -176,7 +192,7 @@ app.post('/api/admin/unban-player', async (req, res) => {
 // 🚀 REALTIME TOURNAMENT APIs
 // ==========================================
 
-// 6. FETCH LATEST ACTIVE TOURNAMENT FROM DATABASE
+// 4. FETCH LATEST ACTIVE TOURNAMENT DIRECTLY FROM DATABASE
 app.get('/api/tournaments/active', async (req, res) => {
   try {
     const tournament = await Tournament.findOne().sort({ createdAt: -1 });
@@ -189,7 +205,7 @@ app.get('/api/tournaments/active', async (req, res) => {
   }
 });
 
-// 7. CREATE & PUBLISH NEW TOURNAMENT
+// 5. CREATE & PUBLISH NEW TOURNAMENT
 app.post('/api/tournaments/create', async (req, res) => {
   try {
     const { title, mode, entryFee, prizePool, maxSlots, registrationDeadline, schedule } = req.body;
@@ -222,7 +238,7 @@ app.post('/api/tournaments/create', async (req, res) => {
   }
 });
 
-// 8. FETCH REGISTERED TEAMS FOR LATEST ACTIVE TOURNAMENT
+// 6. FETCH REGISTERED TEAMS FOR LATEST ACTIVE TOURNAMENT
 app.get('/api/tournaments/teams', async (req, res) => {
   try {
     const latestTournament = await Tournament.findOne().sort({ createdAt: -1 });
