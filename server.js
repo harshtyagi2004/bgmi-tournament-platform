@@ -11,7 +11,6 @@ const jwt = require('jwt-simple');
 // --- DATABASE & CACHE CONFIGURATIONS ---
 const connectDB = require('./config/db');
 const redis = require('./config/redis');
-const { ensureActiveTournament } = require('./services/dbService');
 
 // --- CONTROLLERS ---
 const { submitMatchScore, getLiveLeaderboard } = require('./controllers/leaderboardController');
@@ -28,14 +27,12 @@ const Blacklist = require('./models/Blacklist');
 const app = express();
 const JWT_SECRET = process.env.JWT_SECRET || "bgmi_secret_admin_key_2026";
 
-// --- ENSURE MULTER UPLOADS DIRECTORY EXISTS ---
 const uploadDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 const upload = multer({ dest: uploadDir });
 
-// --- MIDDLEWARE ---
 app.use(cors());
 app.use(express.json());
 
@@ -47,12 +44,8 @@ app.use((req, res, next) => {
   next();
 });
 
-// Serve static frontend files from /public folder
 app.use(express.static('public'));
 
-// ==========================================
-// 🏠 ROOT REDIRECT ROUTE
-// ==========================================
 app.get('/', (req, res) => {
   res.redirect('/index.html');
 });
@@ -61,7 +54,6 @@ app.get('/', (req, res) => {
 // 🔐 ADMIN AUTHENTICATION APIs
 // ==========================================
 
-// 1. ADMIN SIGN UP / REGISTER
 app.post('/api/admin/signup', async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -87,16 +79,14 @@ app.post('/api/admin/signup', async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: "Admin account created successfully!",
       token,
-      admin: { name: newAdmin.name, email: newAdmin.email }
+      admin: { id: newAdmin._id, name: newAdmin.name, email: newAdmin.email }
     });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
-// 2. ADMIN SIGN IN / LOGIN
 app.post('/api/admin/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -115,125 +105,83 @@ app.post('/api/admin/login', async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: "Logged in successfully!",
       token,
-      admin: { name: admin.name, email: admin.email }
+      admin: { id: admin._id, name: admin.name, email: admin.email }
     });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
-// 3. STRICT TOKEN VERIFY ENDPOINT FOR NEW DEVICES
 app.post('/api/admin/verify', async (req, res) => {
   try {
     const { token } = req.body;
-    if (!token) {
-      return res.status(401).json({ success: false, error: "No session token provided!" });
-    }
+    if (!token) return res.status(401).json({ success: false, error: "No token" });
 
     const decoded = jwt.decode(token, JWT_SECRET);
     const admin = await User.findById(decoded.id);
 
     if (!admin || admin.role !== "ADMIN") {
-      return res.status(401).json({ success: false, error: "Invalid admin session!" });
+      return res.status(401).json({ success: false, error: "Unauthorized" });
     }
 
-    res.status(200).json({
-      success: true,
-      admin: { name: admin.name, email: admin.email }
-    });
+    res.status(200).json({ success: true, admin: { id: admin._id, name: admin.name, email: admin.email } });
   } catch (err) {
-    res.status(401).json({ success: false, error: "Session expired or invalid token!" });
+    res.status(401).json({ success: false, error: "Invalid token" });
   }
 });
 
-// 4. RESET / CLEAR DUMMY TOURNAMENTS FROM MONGODB
 app.post('/api/admin/reset-tournaments', async (req, res) => {
   try {
     await Tournament.deleteMany({});
     await Team.deleteMany({});
-    res.status(200).json({ 
-      success: true, 
-      message: "Database cleared! All old dummy tournaments removed successfully." 
-    });
+    res.status(200).json({ success: true, message: "Database cleared!" });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
 // ==========================================
-// 🛡️ ANTI-CHEAT BLACKLIST APIs
+// 🚀 DYNAMIC MULTI-TENANT TOURNAMENT APIs
 // ==========================================
 
-app.post('/api/admin/ban-player', async (req, res) => {
+// 1. FETCH SPECIFIC TOURNAMENT BY ID (OR LATEST)
+app.get('/api/tournaments/get', async (req, res) => {
   try {
-    const { bgmiUid, reason } = req.body;
-    if (!bgmiUid) {
-      return res.status(400).json({ success: false, error: "BGMI UID is required!" });
+    const { tid } = req.query;
+    let tournament = null;
+
+    if (tid && mongoose.Types.ObjectId.isValid(tid)) {
+      tournament = await Tournament.findById(tid);
+    } else {
+      tournament = await Tournament.findOne().sort({ createdAt: -1 });
     }
 
-    const bannedPlayer = await Blacklist.findOneAndUpdate(
-      { bgmiUid },
-      { bgmiUid, reason: reason || 'Hacking / Suspicious Gameplay' },
-      { upsert: true, new: true }
-    );
-
-    res.status(200).json({
-      success: true,
-      message: `UID ${bgmiUid} successfully BANNED from tournaments!`,
-      bannedPlayer
-    });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-app.get('/api/admin/banned-players', async (req, res) => {
-  try {
-    const bannedList = await Blacklist.find().sort({ createdAt: -1 });
-    res.status(200).json({ success: true, banned: bannedList });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-app.post('/api/admin/unban-player', async (req, res) => {
-  try {
-    const { bgmiUid } = req.body;
-    if (!bgmiUid) {
-      return res.status(400).json({ success: false, error: "BGMI UID is required!" });
-    }
-
-    await Blacklist.deleteOne({ bgmiUid });
-    res.status(200).json({ success: true, message: `UID ${bgmiUid} UNBANNED successfully!` });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// ==========================================
-// 🚀 REALTIME TOURNAMENT APIs
-// ==========================================
-
-app.get('/api/tournaments/active', async (req, res) => {
-  try {
-    const tournament = await Tournament.findOne().sort({ createdAt: -1 });
     if (!tournament) {
       return res.status(200).json({ success: true, tournament: null });
     }
+
     res.status(200).json({ success: true, tournamentId: tournament._id.toString(), tournament });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
+// 2. CREATE NEW TOURNAMENT (LINKED TO ORGANIZER)
 app.post('/api/tournaments/create', async (req, res) => {
   try {
-    const { title, mode, entryFee, prizePool, maxSlots, registrationDeadline, schedule } = req.body;
+    const { title, mode, entryFee, prizePool, maxSlots, registrationDeadline, schedule, token } = req.body;
 
     if (!title) {
       return res.status(400).json({ success: false, error: "Tournament Title is required!" });
+    }
+
+    let organizerId = new mongoose.Types.ObjectId();
+    if (token) {
+      try {
+        const decoded = jwt.decode(token, JWT_SECRET);
+        organizerId = decoded.id;
+      } catch (e) {}
     }
 
     const newTournament = new Tournament({
@@ -245,14 +193,14 @@ app.post('/api/tournaments/create', async (req, res) => {
       registrationDeadline: registrationDeadline ? new Date(registrationDeadline) : null,
       schedule: schedule ? new Date(schedule) : null,
       status: "UPCOMING",
-      organizerId: new mongoose.Types.ObjectId()
+      organizerId
     });
 
     await newTournament.save();
 
     res.status(200).json({
       success: true,
-      message: `Tournament "${title}" Created Successfully! Set as Active.`,
+      message: `Tournament "${title}" Created Successfully!`,
       tournament: newTournament
     });
   } catch (err) {
@@ -260,13 +208,22 @@ app.post('/api/tournaments/create', async (req, res) => {
   }
 });
 
+// 3. FETCH REGISTERED TEAMS SPECIFIC TO TOURNAMENT ID
 app.get('/api/tournaments/teams', async (req, res) => {
   try {
-    const latestTournament = await Tournament.findOne().sort({ createdAt: -1 });
-    if (!latestTournament) {
+    const { tid } = req.query;
+    let tournamentId = tid;
+
+    if (!tournamentId || !mongoose.Types.ObjectId.isValid(tournamentId)) {
+      const latest = await Tournament.findOne().sort({ createdAt: -1 });
+      if (latest) tournamentId = latest._id;
+    }
+
+    if (!tournamentId) {
       return res.status(200).json({ success: true, teams: [] });
     }
-    const teams = await Team.find({ tournamentId: latestTournament._id }).sort({ slotNumber: 1 });
+
+    const teams = await Team.find({ tournamentId }).sort({ slotNumber: 1 });
     res.status(200).json({ success: true, teams });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -274,18 +231,21 @@ app.get('/api/tournaments/teams', async (req, res) => {
 });
 
 // ==========================================
-// 👥 TEAM REGISTRATION & SLOT ALLOCATION
+// 👥 TEAM REGISTRATION (SPECIFIC TO TOURNAMENT)
 // ==========================================
 
 app.post('/api/teams/register', async (req, res) => {
   try {
-    const { teamName, captainIgn, captainUid, members, transactionId } = req.body;
+    const { teamName, captainIgn, captainUid, members, transactionId, tournamentId } = req.body;
 
-    const latestTournament = await Tournament.findOne().sort({ createdAt: -1 });
-    const tournamentId = req.body.tournamentId || (latestTournament ? latestTournament._id : null);
+    let targetTid = tournamentId;
+    if (!targetTid || !mongoose.Types.ObjectId.isValid(targetTid)) {
+      const latest = await Tournament.findOne().sort({ createdAt: -1 });
+      if (latest) targetTid = latest._id;
+    }
 
-    if (!tournamentId) {
-      return res.status(400).json({ success: false, error: "No active tournament found. Please wait for Admin to host one." });
+    if (!targetTid) {
+      return res.status(400).json({ success: false, error: "No active tournament found." });
     }
 
     if (!teamName || !captainIgn || !captainUid) {
@@ -303,9 +263,9 @@ app.post('/api/teams/register', async (req, res) => {
       });
     }
 
-    // Duplicate Check
+    // Duplicate Check within SAME Tournament
     const existingTeam = await Team.findOne({
-      tournamentId,
+      tournamentId: targetTid,
       $or: [
         { "captain.bgmiUid": { $in: allSquadUids } },
         { "members.bgmiUid": { $in: allSquadUids } }
@@ -315,11 +275,11 @@ app.post('/api/teams/register', async (req, res) => {
     if (existingTeam) {
       return res.status(400).json({ 
         success: false, 
-        error: "One of the provided BGMI UIDs is already registered in this tournament!" 
+        error: "One of the provided BGMI UIDs is already registered in this specific tournament!" 
       });
     }
 
-    const count = await Team.countDocuments({ tournamentId });
+    const count = await Team.countDocuments({ tournamentId: targetTid });
     const assignedSlot = count + 1;
 
     const squadMembers = [
@@ -328,7 +288,7 @@ app.post('/api/teams/register', async (req, res) => {
     ];
 
     const newTeam = new Team({
-      tournamentId,
+      tournamentId: targetTid,
       teamName,
       slotNumber: assignedSlot,
       captain: { ign: captainIgn, bgmiUid: captainUid },
@@ -338,19 +298,6 @@ app.post('/api/teams/register', async (req, res) => {
     });
 
     await newTeam.save();
-
-    for (const player of squadMembers) {
-      if (player.bgmiUid) {
-        await User.findOneAndUpdate(
-          { bgmiUid: player.bgmiUid },
-          { 
-            $setOnInsert: { name: player.ign, email: `${player.bgmiUid}@esports.com`, ign: player.ign },
-            $inc: { "stats.tournamentsPlayed": 1 } 
-          },
-          { upsert: true, new: true }
-        );
-      }
-    }
 
     res.status(200).json({ 
       success: true, 
@@ -363,8 +310,43 @@ app.post('/api/teams/register', async (req, res) => {
 });
 
 // ==========================================
-// 📷 OCR, DISPATCHER & LEADERBOARD APIs
+// 🛡️ ANTI-CHEAT & OTHER ENDPOINTS
 // ==========================================
+
+app.post('/api/admin/ban-player', async (req, res) => {
+  try {
+    const { bgmiUid, reason } = req.body;
+    if (!bgmiUid) return res.status(400).json({ success: false, error: "BGMI UID is required!" });
+
+    const bannedPlayer = await Blacklist.findOneAndUpdate(
+      { bgmiUid },
+      { bgmiUid, reason: reason || 'Hacking / Suspicious Gameplay' },
+      { upsert: true, new: true }
+    );
+    res.status(200).json({ success: true, message: `UID ${bgmiUid} BANNED!`, bannedPlayer });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/admin/banned-players', async (req, res) => {
+  try {
+    const bannedList = await Blacklist.find().sort({ createdAt: -1 });
+    res.status(200).json({ success: true, banned: bannedList });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/admin/unban-player', async (req, res) => {
+  try {
+    const { bgmiUid } = req.body;
+    await Blacklist.deleteOne({ bgmiUid });
+    res.status(200).json({ success: true, message: `UID ${bgmiUid} UNBANNED!` });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 
 app.post('/api/tournaments/upload-score-ocr', upload.single('screenshot'), processScoreScreenshot);
 app.post('/api/tournaments/broadcast-room', broadcastRoom);
@@ -378,51 +360,21 @@ app.get('/api/players/:uid', async (req, res) => {
   try {
     const { uid } = req.params;
     let player = await User.findOne({ bgmiUid: uid });
-    
-    if (!player) {
-      return res.status(404).json({ success: false, error: "Player profile not found." });
-    }
-
+    if (!player) return res.status(404).json({ success: false, error: "Player profile not found." });
     res.status(200).json({ success: true, player });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
-// ==========================================
-// 🛠️ SERVER INITIALIZATION
-// ==========================================
 const startServer = async () => {
   try {
     await connectDB();
-    await ensureActiveTournament();
-
-    redis.connect().catch(() => {
-      console.warn("⚠️ Redis is offline. Running with fallback DB queries.");
-    });
-
+    redis.connect().catch(() => {});
     const PORT = process.env.PORT || 5001;
-
-    const listenWithFallback = (port) => {
-      const server = app.listen(port, () => {
-        console.log(`🚀 Platform live on: http://localhost:${port}`);
-      });
-
-      server.on('error', (err) => {
-        if (err.code === 'EADDRINUSE') {
-          console.warn(`⚠️ Port ${port} occupied, retrying on ${port + 1}...`);
-          listenWithFallback(port + 1);
-        } else {
-          console.error("Server Error:", err.message);
-        }
-      });
-    };
-
-    listenWithFallback(Number(PORT));
-
+    app.listen(PORT, () => console.log(`🚀 Server live on port: ${PORT}`));
   } catch (err) {
-    console.error("❌ Failed to start server:", err.message);
-    process.exit(1);
+    console.error("Failed to start server:", err.message);
   }
 };
 

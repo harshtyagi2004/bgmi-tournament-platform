@@ -24,7 +24,6 @@
     </header>
 
     <div id="authContainer" class="max-w-md mx-auto bg-slate-800 p-6 md:p-8 rounded-2xl border border-orange-500/30 shadow-2xl space-y-6">
-      
       <div class="text-center space-y-1">
         <h2 class="text-xl font-extrabold text-orange-400">ADMIN ACCESS</h2>
         <p class="text-xs text-slate-400">Sign in or register as an organizer to manage tournaments.</p>
@@ -42,20 +41,20 @@
       <div class="space-y-4">
         <div id="nameField" class="hidden">
           <label class="text-xs font-bold text-slate-300 uppercase tracking-wider">Organizer Name</label>
-          <input id="adminName" type="text" placeholder="e.g. Krafton Official" class="w-full p-3 mt-1 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-orange-500 transition" />
+          <input id="adminName" type="text" placeholder="e.g. Krafton Official" class="w-full p-3 mt-1 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-orange-500" />
         </div>
 
         <div>
           <label class="text-xs font-bold text-slate-300 uppercase tracking-wider">Admin Email *</label>
-          <input id="adminEmail" type="email" placeholder="admin@esports.com" class="w-full p-3 mt-1 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-orange-500 transition" />
+          <input id="adminEmail" type="email" placeholder="admin@esports.com" class="w-full p-3 mt-1 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-orange-500" />
         </div>
 
         <div>
           <label class="text-xs font-bold text-slate-300 uppercase tracking-wider">Password *</label>
-          <input id="adminPassword" type="password" placeholder="••••••••" class="w-full p-3 mt-1 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-orange-500 transition" />
+          <input id="adminPassword" type="password" placeholder="••••••••" class="w-full p-3 mt-1 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-orange-500" />
         </div>
 
-        <button id="authBtn" onclick="handleAuth()" class="w-full bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white p-3.5 rounded-lg font-bold transition-all duration-300 shadow-lg active:scale-95 text-sm">
+        <button id="authBtn" onclick="handleAuth()" class="w-full bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white p-3.5 rounded-lg font-bold transition-all duration-300 shadow-lg text-sm">
           🔐 Sign In as Admin
         </button>
 
@@ -71,11 +70,22 @@
           <h2 class="text-lg font-extrabold text-white">Welcome, <span id="adminDisplayName" class="text-orange-400">Admin</span> 👑</h2>
         </div>
         <div class="flex gap-2">
-          <a href="create-tournament.html" class="bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white px-4 py-2.5 rounded-lg font-bold text-xs shadow-md transition-all duration-300 active:scale-95">
+          <a href="create-tournament.html" class="bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white px-4 py-2.5 rounded-lg font-bold text-xs shadow-md transition">
             🏆 Create New Tournament
           </a>
-          <button onclick="resetDatabaseTournaments()" class="bg-rose-700 hover:bg-rose-600 text-white px-3 py-2.5 rounded-lg font-bold text-xs transition shadow active:scale-95">
+          <button onclick="resetDatabaseTournaments()" class="bg-rose-700 hover:bg-rose-600 text-white px-3 py-2.5 rounded-lg font-bold text-xs transition">
             🗑️ Clear Old Dummy Data
+          </button>
+        </div>
+      </div>
+
+      <div id="shareLinkCard" class="hidden bg-slate-800/90 p-5 rounded-xl border border-cyan-500/40 space-y-2 shadow-lg">
+        <h3 class="text-xs font-bold text-cyan-400 uppercase tracking-wider">🔗 Active Tournament Unique Share Link for Registered Teams</h3>
+        <p class="text-xs text-slate-300">Share this link with your players/Discord server. They will ONLY see your tournament details and live scores!</p>
+        <div class="flex gap-2">
+          <input id="shareUrlInput" type="text" readonly class="w-full p-2.5 bg-slate-900 rounded border border-slate-700 text-xs font-mono text-amber-300" />
+          <button onclick="copyShareUrl()" class="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded transition">
+            📋 Copy Link
           </button>
         </div>
       </div>
@@ -90,11 +100,11 @@
           <div class="space-y-3">
             <div>
               <label class="text-[10px] font-bold text-slate-300 uppercase">Discord Webhook URL (Optional)</label>
-              <input id="customWebhook" type="url" placeholder="https://discord.com/api/webhooks/..." class="w-full p-2.5 mt-0.5 bg-slate-900 rounded-lg border border-slate-700 text-white text-xs focus:outline-none focus:border-orange-500" />
+              <input id="customWebhook" type="url" placeholder="https://discord.com/api/webhooks/..." class="w-full p-2.5 mt-0.5 bg-slate-900 rounded-lg border border-slate-700 text-white text-xs" />
             </div>
-            <input id="roomId" type="text" placeholder="Room ID (e.g. 849201)" class="w-full p-3 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-orange-500" />
-            <input id="roomPass" type="text" placeholder="Room Password (e.g. 1234)" class="w-full p-3 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-orange-500" />
-            <button onclick="dispatchRoom()" class="w-full bg-orange-600 hover:bg-orange-500 text-white p-3 rounded-lg font-bold transition text-sm active:scale-95">
+            <input id="roomId" type="text" placeholder="Room ID (e.g. 849201)" class="w-full p-3 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm" />
+            <input id="roomPass" type="text" placeholder="Room Password (e.g. 1234)" class="w-full p-3 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm" />
+            <button onclick="dispatchRoom()" class="w-full bg-orange-600 hover:bg-orange-500 text-white p-3 rounded-lg font-bold text-sm">
               🚀 Broadcast Credentials
             </button>
           </div>
@@ -107,8 +117,8 @@
             <p class="text-xs text-slate-400 mt-1">Upload end-game match result screenshot to extract points automatically.</p>
           </div>
           <div class="space-y-3">
-            <input id="screenshot" type="file" accept="image/*" class="w-full text-xs text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-cyan-900 file:text-cyan-200 hover:file:bg-cyan-800 cursor-pointer" />
-            <button onclick="uploadOCR()" class="w-full bg-cyan-600 hover:bg-cyan-500 text-white p-3 rounded-lg font-bold transition text-sm active:scale-95">
+            <input id="screenshot" type="file" accept="image/*" class="w-full text-xs text-slate-300 cursor-pointer" />
+            <button onclick="uploadOCR()" class="w-full bg-cyan-600 hover:bg-cyan-500 text-white p-3 rounded-lg font-bold text-sm">
               🔍 Scan Scorecard Screenshot
             </button>
           </div>
@@ -121,70 +131,16 @@
             <p class="text-xs text-slate-400 mt-1">Manually update kills and placement points for teams.</p>
           </div>
           <div class="space-y-3">
-            <input id="teamName" type="text" placeholder="Team Name (e.g. Soul Esports)" class="w-full p-3 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-green-500" />
+            <input id="teamName" type="text" placeholder="Team Name (e.g. Soul Esports)" class="w-full p-3 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm" />
             <div class="grid grid-cols-2 gap-2">
-              <input id="kills" type="number" placeholder="Kills" class="p-3 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-green-500" />
-              <input id="rank" type="number" placeholder="Rank (1-25)" class="p-3 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-green-500" />
+              <input id="kills" type="number" placeholder="Kills" class="p-3 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm" />
+              <input id="rank" type="number" placeholder="Rank (1-25)" class="p-3 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm" />
             </div>
-            <button onclick="submitScore()" class="w-full bg-green-600 hover:bg-green-500 text-white p-3 rounded-lg font-bold transition text-sm active:scale-95">
+            <button onclick="submitScore()" class="w-full bg-green-600 hover:bg-green-500 text-white p-3 rounded-lg font-bold text-sm">
               📈 Update Scoreboard
             </button>
           </div>
           <p id="scoreStatus" class="text-xs text-center h-4 font-semibold"></p>
-        </div>
-
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        
-        <div class="bg-slate-800 p-6 rounded-xl border border-rose-500/30 shadow-lg space-y-4">
-          <h2 class="text-lg font-bold text-rose-400 flex items-center gap-2">
-            🛡️ Anti-Cheat: Ban BGMI UID
-          </h2>
-          <p class="text-xs text-slate-400">Ban cheater BGMI UIDs to instantly block them from team registration.</p>
-          
-          <div class="space-y-3">
-            <div>
-              <label class="text-[11px] font-bold text-slate-300 uppercase">BGMI UID *</label>
-              <input id="banUid" type="text" placeholder="e.g. 5123456789" class="w-full p-3 mt-1 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-rose-500" />
-            </div>
-            <div>
-              <label class="text-[11px] font-bold text-slate-300 uppercase">Ban Reason</label>
-              <input id="banReason" type="text" placeholder="e.g. Wallhack / Speed Hack / ESP" class="w-full p-3 mt-1 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-rose-500" />
-            </div>
-            <button onclick="banPlayer()" class="w-full bg-rose-600 hover:bg-rose-500 text-white p-3 rounded-lg font-bold transition text-sm shadow-md active:scale-95">
-              🚨 Ban BGMI UID Immediately
-            </button>
-          </div>
-          <p id="banStatus" class="text-xs text-center h-4 font-semibold"></p>
-        </div>
-
-        <div class="md:col-span-2 bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg space-y-4">
-          <div class="flex justify-between items-center border-b border-slate-700 pb-3">
-            <h2 class="text-lg font-bold text-amber-400 flex items-center gap-2">
-              🚫 Banned Players Blacklist
-            </h2>
-            <button onclick="loadBannedPlayers()" class="px-3 py-1 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded text-xs transition">
-              🔄 Refresh List
-            </button>
-          </div>
-
-          <div class="overflow-x-auto max-h-60 overflow-y-auto">
-            <table class="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr class="text-slate-400 border-b border-slate-700 uppercase tracking-wider">
-                  <th class="py-2.5 px-3">BGMI UID</th>
-                  <th class="py-2.5 px-3">Reason</th>
-                  <th class="py-2.5 px-3 text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody id="bannedListBody" class="divide-y divide-slate-700 text-slate-200">
-                <tr>
-                  <td colspan="3" class="text-center py-4 text-slate-500 italic">No banned players recorded.</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
         </div>
 
       </div>
@@ -195,43 +151,21 @@
 
   <script>
     let authMode = "login";
+    let activeTid = null;
 
-    // 1. AUTHENTICATION TAB SWITCHER
     function switchAuthTab(mode) {
       authMode = mode;
-      const nameField = document.getElementById('nameField');
-      const authBtn = document.getElementById('authBtn');
-      const tabLogin = document.getElementById('tabLogin');
-      const tabSignup = document.getElementById('tabSignup');
-
-      if (mode === 'signup') {
-        nameField.classList.remove('hidden');
-        authBtn.innerText = "🚀 Register as New Admin";
-        tabSignup.className = "flex-1 py-2 font-bold text-sm text-orange-400 border-b-2 border-orange-400 transition-all duration-300";
-        tabLogin.className = "flex-1 py-2 font-bold text-sm text-slate-400 hover:text-white transition-all duration-300";
-      } else {
-        nameField.classList.add('hidden');
-        authBtn.innerText = "🔐 Sign In as Admin";
-        tabLogin.className = "flex-1 py-2 font-bold text-sm text-orange-400 border-b-2 border-orange-400 transition-all duration-300";
-        tabSignup.className = "flex-1 py-2 font-bold text-sm text-slate-400 hover:text-white transition-all duration-300";
-      }
+      document.getElementById('nameField').classList.toggle('hidden', mode === 'login');
+      document.getElementById('authBtn').innerText = mode === 'signup' ? "🚀 Register as New Admin" : "🔐 Sign In as Admin";
     }
 
-    // 2. ADMIN AUTHENTICATION HANDLER
     async function handleAuth() {
       const email = document.getElementById('adminEmail').value.trim();
       const password = document.getElementById('adminPassword').value.trim();
       const name = document.getElementById('adminName').value.trim();
       const statusEl = document.getElementById('authStatus');
 
-      if (!email || !password) {
-        statusEl.className = "text-xs text-center font-semibold text-rose-400";
-        statusEl.innerText = "❌ Please enter Email and Password!";
-        return;
-      }
-
-      statusEl.className = "text-xs text-center font-semibold text-orange-400";
-      statusEl.innerText = "⏳ Authenticating...";
+      if (!email || !password) return alert("Enter Email and Password!");
 
       const endpoint = authMode === 'signup' ? '/api/admin/signup' : '/api/admin/login';
       try {
@@ -247,26 +181,16 @@
           localStorage.setItem('adminName', data.admin?.name || 'Organizer');
           checkAdminSession();
         } else {
-          statusEl.className = "text-xs text-center font-semibold text-rose-400";
           statusEl.innerText = `❌ ${data.error || 'Authentication failed!'}`;
         }
       } catch (err) {
-        statusEl.className = "text-xs text-center font-semibold text-rose-400";
-        statusEl.innerText = "❌ Server error occurred.";
+        statusEl.innerText = "❌ Server error.";
       }
     }
 
-    // 3. STRICT DEVICE SESSION CHECK (ALWAYS VERIFY TOKEN WITH BACKEND)
     async function checkAdminSession() {
       const token = localStorage.getItem('adminToken');
-      const authContainer = document.getElementById('authContainer');
-      const adminDashboard = document.getElementById('adminDashboard');
-      const logoutBtn = document.getElementById('logoutBtn');
-
-      if (!token || token === "null" || token === "undefined") {
-        showLoginScreen();
-        return;
-      }
+      if (!token) return showLoginScreen();
 
       try {
         const res = await fetch('/api/admin/verify', {
@@ -277,13 +201,12 @@
         const data = await res.json();
 
         if (res.ok && data.success) {
-          authContainer.classList.add('hidden');
-          adminDashboard.classList.remove('hidden');
-          logoutBtn.classList.remove('hidden');
+          document.getElementById('authContainer').classList.add('hidden');
+          document.getElementById('adminDashboard').classList.remove('hidden');
+          document.getElementById('logoutBtn').classList.remove('hidden');
           document.getElementById('adminDisplayName').innerText = data.admin.name || 'Organizer';
-          loadBannedPlayers();
+          loadActiveTournamentShareLink();
         } else {
-          // Token invalid or session expired on this device
           logoutAdmin();
         }
       } catch (err) {
@@ -297,202 +220,72 @@
       document.getElementById('logoutBtn').classList.add('hidden');
     }
 
-    // 4. LOGOUT SESSION ON CURRENT DEVICE
     function logoutAdmin() {
       localStorage.removeItem('adminToken');
       localStorage.removeItem('adminName');
       showLoginScreen();
     }
 
-    // 5. RESET ALL OLD DUMMY TOURNAMENTS FROM MONGODB
+    async function loadActiveTournamentShareLink() {
+      try {
+        const res = await fetch('/api/tournaments/get');
+        const data = await res.json();
+        if (data.success && data.tournament) {
+          activeTid = data.tournament._id;
+          const shareUrl = `${window.location.origin}/index.html?tid=${activeTid}`;
+          document.getElementById('shareUrlInput').value = shareUrl;
+          document.getElementById('shareLinkCard').classList.remove('hidden');
+        }
+      } catch (e) {}
+    }
+
+    function copyShareUrl() {
+      const input = document.getElementById('shareUrlInput');
+      input.select();
+      navigator.clipboard.writeText(input.value);
+      alert("✅ Unique Tournament Share Link Copied!");
+    }
+
     async function resetDatabaseTournaments() {
-      if (!confirm("Are you sure you want to delete all old dummy tournaments from database?")) return;
-
-      try {
-        const res = await fetch('/api/admin/reset-tournaments', { method: 'POST' });
-        const data = await res.json();
-        if (res.ok) {
-          alert("✅ " + data.message);
-          window.location.reload();
-        } else {
-          alert("❌ " + (data.error || "Failed to reset database"));
-        }
-      } catch (err) {
-        alert("❌ Error resetting database.");
-      }
+      if (!confirm("Delete all tournaments?")) return;
+      await fetch('/api/admin/reset-tournaments', { method: 'POST' });
+      alert("Database cleared!");
+      window.location.reload();
     }
 
-    // 6. BAN PLAYER UID
-    async function banPlayer() {
-      const bgmiUid = document.getElementById('banUid').value.trim();
-      const reason = document.getElementById('banReason').value.trim();
-      const statusEl = document.getElementById('banStatus');
-
-      if (!bgmiUid) {
-        statusEl.className = "text-xs text-center font-semibold text-rose-400";
-        statusEl.innerText = "❌ Please enter a BGMI UID!";
-        return;
-      }
-
-      statusEl.className = "text-xs text-center font-semibold text-orange-400";
-      statusEl.innerText = "⏳ Processing ban...";
-
-      try {
-        const res = await fetch('/api/admin/ban-player', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ bgmiUid, reason })
-        });
-        const data = await res.json();
-
-        if (res.ok) {
-          statusEl.className = "text-xs text-center font-semibold text-emerald-400";
-          statusEl.innerText = `✅ UID ${bgmiUid} successfully BANNED!`;
-          document.getElementById('banUid').value = "";
-          document.getElementById('banReason').value = "";
-          loadBannedPlayers();
-        } else {
-          statusEl.className = "text-xs text-center font-semibold text-rose-400";
-          statusEl.innerText = `❌ ${data.error || 'Failed to ban UID'}`;
-        }
-      } catch (e) {
-        statusEl.className = "text-xs text-center font-semibold text-rose-400";
-        statusEl.innerText = "❌ Server error occurred.";
-      }
-    }
-
-    // 7. FETCH BANNED PLAYERS
-    async function loadBannedPlayers() {
-      const bodyEl = document.getElementById('bannedListBody');
-      try {
-        const res = await fetch('/api/admin/banned-players');
-        const data = await res.json();
-
-        if (data.success && data.banned && data.banned.length > 0) {
-          bodyEl.innerHTML = data.banned.map((player) => `
-            <tr class="hover:bg-slate-750 transition">
-              <td class="py-2.5 px-3 font-mono font-bold text-rose-400">${player.bgmiUid}</td>
-              <td class="py-2.5 px-3 text-slate-300">${player.reason || 'Suspicious Activity'}</td>
-              <td class="py-2.5 px-3 text-right">
-                <button onclick="unbanPlayer('${player.bgmiUid}')" class="bg-slate-700 hover:bg-emerald-600 text-slate-200 hover:text-white px-2 py-1 rounded text-[10px] font-bold transition">
-                  🟢 Unban
-                </button>
-              </td>
-            </tr>
-          `).join('');
-        } else {
-          bodyEl.innerHTML = `<tr><td colspan="3" class="text-center py-4 text-slate-500 italic">No banned players recorded.</td></tr>`;
-        }
-      } catch (e) {
-        console.warn("Could not load banned list:", e);
-      }
-    }
-
-    // 8. UNBAN PLAYER
-    async function unbanPlayer(bgmiUid) {
-      if (!confirm(`Are you sure you want to UNBAN UID ${bgmiUid}?`)) return;
-
-      try {
-        const res = await fetch('/api/admin/unban-player', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ bgmiUid })
-        });
-        if (res.ok) {
-          loadBannedPlayers();
-        } else {
-          alert("Failed to unban player.");
-        }
-      } catch (e) {
-        alert("Server error while unbanning.");
-      }
-    }
-
-    // 9. DISPATCH ROOM CREDENTIALS (WITH CLIENT DISCORD WEBHOOK SUPPORT)
     async function dispatchRoom() {
       const customWebhook = document.getElementById('customWebhook').value.trim();
       const roomId = document.getElementById('roomId').value.trim();
       const roomPassword = document.getElementById('roomPass').value.trim();
-      const statusEl = document.getElementById('dispatchStatus');
 
       if (!roomId || !roomPassword) return alert("Enter Room ID & Password!");
       
-      statusEl.className = "text-xs text-center font-semibold text-orange-400";
-      statusEl.innerText = "⏳ Dispatching to Discord...";
-
-      try {
-        const res = await fetch('/api/tournaments/broadcast-room', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ roomId, roomPassword, customWebhook })
-        });
-        const data = await res.json();
-        
-        if (res.ok) {
-          statusEl.className = "text-xs text-center font-semibold text-emerald-400";
-          statusEl.innerText = "✅ Credentials Dispatched to Discord!";
-          document.getElementById('roomId').value = "";
-          document.getElementById('roomPass').value = "";
-        } else {
-          statusEl.className = "text-xs text-center font-semibold text-rose-400";
-          statusEl.innerText = `❌ ${data.error || 'Dispatch Failed'}`;
-        }
-      } catch (err) {
-        statusEl.className = "text-xs text-center font-semibold text-rose-400";
-        statusEl.innerText = "❌ Server error occurred.";
-      }
+      const res = await fetch('/api/tournaments/broadcast-room', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roomId, roomPassword, customWebhook })
+      });
+      alert(res.ok ? "✅ Dispatched to Discord!" : "❌ Failed.");
     }
 
-    // 10. UPLOAD OCR SCREENSHOT
-    async function uploadOCR() {
-      const fileInput = document.getElementById('screenshot');
-      const statusEl = document.getElementById('ocrStatus');
-      if (!fileInput.files[0]) return alert("Select image first!");
-
-      const formData = new FormData();
-      formData.append('screenshot', fileInput.files[0]);
-      statusEl.className = "text-xs text-center font-semibold text-cyan-400";
-      statusEl.innerText = "🔍 Scanning image...";
-
-      try {
-        const res = await fetch('/api/tournaments/upload-score-ocr', { method: 'POST', body: formData });
-        statusEl.className = res.ok ? "text-xs text-center font-semibold text-emerald-400" : "text-xs text-center font-semibold text-rose-400";
-        statusEl.innerText = res.ok ? "✅ Screenshot Scanned!" : "❌ Scan Failed.";
-      } catch (err) {
-        statusEl.className = "text-xs text-center font-semibold text-rose-400";
-        statusEl.innerText = "❌ OCR Failed.";
-      }
-    }
-
-    // 11. SUBMIT MATCH SCORE
     async function submitScore() {
       const teamId = document.getElementById('teamName').value.trim();
       const kills = document.getElementById('kills').value;
       const rank = document.getElementById('rank').value;
-      const statusEl = document.getElementById('scoreStatus');
 
       if (!teamId || kills === "" || !rank) return alert("Fill all fields!");
-      statusEl.className = "text-xs text-center font-semibold text-green-400";
-      statusEl.innerText = "⏳ Updating score...";
 
-      try {
-        const activeRes = await fetch('/api/tournaments/active').then(r => r.json());
-        const res = await fetch('/api/tournaments/score', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            tournamentId: activeRes.tournamentId || 'default',
-            teamId,
-            kills: Number(kills),
-            rank: Number(rank)
-          })
-        });
-        statusEl.className = res.ok ? "text-xs text-center font-semibold text-emerald-400" : "text-xs text-center font-semibold text-rose-400";
-        statusEl.innerText = res.ok ? "✅ Score Updated!" : "❌ Update Failed.";
-      } catch (err) {
-        statusEl.className = "text-xs text-center font-semibold text-rose-400";
-        statusEl.innerText = "❌ Server error occurred.";
-      }
+      const res = await fetch('/api/tournaments/score', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tournamentId: activeTid || 'default',
+          teamId,
+          kills: Number(kills),
+          rank: Number(rank)
+        })
+      });
+      alert(res.ok ? "✅ Score Updated!" : "❌ Failed.");
     }
 
     window.onload = checkAdminSession;

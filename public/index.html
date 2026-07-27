@@ -93,7 +93,7 @@
           </thead>
           <tbody id="leaderboardBody" class="divide-y divide-slate-700 text-slate-200">
             <tr>
-              <td colspan="6" class="text-center py-6 text-slate-500 italic">No score records available yet. Check back soon!</td>
+              <td colspan="6" class="text-center py-6 text-slate-500 italic">No match scores available yet. Check back soon!</td>
             </tr>
           </tbody>
         </table>
@@ -103,7 +103,7 @@
     <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-xl space-y-4">
       <div class="border-b border-slate-700 pb-3">
         <h2 class="text-lg font-bold text-cyan-400 flex items-center gap-2">
-          🛡️ Registered Squads & Slot Allocations
+          🛡️ Registered Squads for this Tournament
         </h2>
         <p class="text-xs text-slate-400">Locked slot numbers and squad registration details.</p>
       </div>
@@ -121,7 +121,7 @@
           </thead>
           <tbody id="registeredTeamsBody" class="divide-y divide-slate-700 text-slate-200">
             <tr>
-              <td colspan="5" class="text-center py-6 text-slate-500 italic">No squads registered yet.</td>
+              <td colspan="5" class="text-center py-6 text-slate-500 italic">No squads registered for this tournament yet.</td>
             </tr>
           </tbody>
         </table>
@@ -131,16 +131,33 @@
   </div>
 
   <script>
-    let activeTournamentId = null;
+    // 1. EXTRACT TOURNAMENT ID FROM URL QUERY PARAMETERS (?tid=...)
+    const urlParams = new URLSearchParams(window.location.search);
+    let activeTournamentId = urlParams.get('tid');
 
-    // 1. FETCH ACTIVE TOURNAMENT DETAILS (WITH NO-CACHE TIMESTAMP & EMPTY STATE CHECK)
+    // Sync Tournament ID in Header Navigation Links
+    if (activeTournamentId) {
+      const regNav = document.getElementById('nav-register');
+      if (regNav) regNav.href = `register.html?tid=${activeTournamentId}`;
+    }
+
+    // 2. FETCH SPECIFIC / ACTIVE TOURNAMENT DETAILS (WITH NO-CACHE QUERY)
     async function fetchActiveTournament() {
       try {
-        const res = await fetch('/api/tournaments/active?t=' + Date.now(), { cache: 'no-store' });
+        const query = activeTournamentId 
+          ? `?tid=${activeTournamentId}&t=${Date.now()}` 
+          : `?t=${Date.now()}`;
+
+        const res = await fetch('/api/tournaments/get' + query, { cache: 'no-store' });
         const data = await res.json();
 
         if (data.success && data.tournament) {
           activeTournamentId = data.tournament._id || data.tournamentId;
+          
+          // Update Nav link dynamically if fetched via fallback
+          const regNav = document.getElementById('nav-register');
+          if (regNav) regNav.href = `register.html?tid=${activeTournamentId}`;
+
           document.getElementById('activeTitle').innerText = data.tournament.title || 'BGMI Tournament';
           document.getElementById('activeMode').innerText = `Mode: ${data.tournament.mode || 'SQUAD'}`;
           document.getElementById('activePrize').innerText = `₹${data.tournament.prizePool || 0}`;
@@ -148,26 +165,26 @@
           loadLeaderboard();
           loadRegisteredTeams();
         } else {
-          // Clean empty state handling when no tournament exists in DB
+          // Clean empty state handling
           document.getElementById('activeTitle').innerText = 'No Active Tournament';
           document.getElementById('activeMode').innerText = 'Mode: N/A';
           document.getElementById('activePrize').innerText = '₹0';
           document.getElementById('registeredCount').innerText = '0 Squads';
-          document.getElementById('registeredTeamsBody').innerHTML = `<tr><td colspan="5" class="text-center py-6 text-slate-500 italic">No active tournament currently available. Admin can host one from Admin Panel.</td></tr>`;
-          document.getElementById('leaderboardBody').innerHTML = `<tr><td colspan="6" class="text-center py-6 text-slate-500 italic">No active tournament found.</td></tr>`;
+          document.getElementById('registeredTeamsBody').innerHTML = `<tr><td colspan="5" class="text-center py-6 text-slate-500 italic">No tournament found for this link.</td></tr>`;
+          document.getElementById('leaderboardBody').innerHTML = `<tr><td colspan="6" class="text-center py-6 text-slate-500 italic">No score records available.</td></tr>`;
         }
       } catch (err) {
-        console.warn("Could not fetch active tournament:", err);
+        console.warn("Error fetching tournament details:", err);
       }
     }
 
-    // 2. FETCH LIVE LEADERBOARD (WITH NO-CACHE TIMESTAMP)
+    // 3. FETCH LIVE LEADERBOARD SPECIFIC TO THIS TOURNAMENT
     async function loadLeaderboard() {
       if (!activeTournamentId) return;
       const bodyEl = document.getElementById('leaderboardBody');
 
       try {
-        const res = await fetch(`/api/tournaments/${activeTournamentId}/leaderboard?t=` + Date.now(), { cache: 'no-store' });
+        const res = await fetch(`/api/tournaments/${activeTournamentId}/leaderboard?t=${Date.now()}`, { cache: 'no-store' });
         const data = await res.json();
 
         if (data.success && data.leaderboard && data.leaderboard.length > 0) {
@@ -182,20 +199,21 @@
             </tr>
           `).join('');
         } else {
-          bodyEl.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-slate-500 italic">No match scores submitted yet.</td></tr>`;
+          bodyEl.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-slate-500 italic">No match scores recorded yet.</td></tr>`;
         }
       } catch (err) {
-        console.warn("Error fetching leaderboard:", err);
+        console.warn("Error loading leaderboard:", err);
       }
     }
 
-    // 3. FETCH REGISTERED SQUADS & UTR CODES (WITH NO-CACHE TIMESTAMP)
+    // 4. FETCH REGISTERED SQUADS FOR THIS TOURNAMENT
     async function loadRegisteredTeams() {
+      if (!activeTournamentId) return;
       const bodyEl = document.getElementById('registeredTeamsBody');
       const countEl = document.getElementById('registeredCount');
 
       try {
-        const res = await fetch('/api/tournaments/teams?t=' + Date.now(), { cache: 'no-store' });
+        const res = await fetch(`/api/tournaments/teams?tid=${activeTournamentId}&t=${Date.now()}`, { cache: 'no-store' });
         const data = await res.json();
 
         if (data.success && data.teams && data.teams.length > 0) {
@@ -211,14 +229,14 @@
           `).join('');
         } else {
           countEl.innerText = "0 Squads";
-          bodyEl.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-slate-500 italic">No squads registered yet.</td></tr>`;
+          bodyEl.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-slate-500 italic">No squads registered for this tournament yet.</td></tr>`;
         }
       } catch (err) {
         console.warn("Error loading registered teams:", err);
       }
     }
 
-    // 📊 4. EXPORT LEADERBOARD TO EXCEL (.xlsx)
+    // 📊 5. EXPORT LEADERBOARD TO EXCEL (.xlsx)
     function exportLeaderboardToExcel() {
       const table = document.getElementById('leaderboardTable');
       if (!table || table.rows.length <= 1) {
@@ -229,7 +247,7 @@
       XLSX.writeFile(wb, `BGMI_Tournament_Leaderboard_${Date.now()}.xlsx`);
     }
 
-    // 📄 5. EXPORT LEADERBOARD TO OFFICIAL PDF (.pdf)
+    // 📄 6. EXPORT LEADERBOARD TO OFFICIAL PDF (.pdf)
     function exportLeaderboardToPDF() {
       const table = document.getElementById('leaderboardTable');
       if (!table || table.rows.length <= 1) {
@@ -239,7 +257,6 @@
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
 
-      // Title Header
       doc.setFontSize(16);
       doc.setTextColor(234, 88, 12); // Orange Accent
       doc.text("BGMI ESPORTS TOURNAMENT - OFFICIAL LEADERBOARD", 14, 18);
@@ -248,7 +265,6 @@
       doc.setTextColor(100);
       doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 25);
 
-      // AutoTable PDF Layout
       doc.autoTable({
         html: '#leaderboardTable',
         startY: 30,
