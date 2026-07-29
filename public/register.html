@@ -18,10 +18,10 @@
         </h1>
       </div>
       <nav class="flex flex-wrap justify-center items-center gap-2 sm:gap-4 text-xs sm:text-sm font-semibold">
-        <a id="nav-dashboard" href="index.html" class="text-slate-400 hover:text-orange-400 pb-0.5 transition-all duration-300">📊 Dashboard</a>
-        <a id="nav-register" href="register.html" class="text-orange-400 border-b-2 border-orange-400 pb-0.5 transition-all duration-300">📝 Team Register</a>
-        <a id="nav-stats" href="profile.html" class="text-slate-400 hover:text-orange-400 pb-0.5 transition-all duration-300">🎮 Player Stats</a>
-        <a href="admin.html" class="text-slate-500 hover:text-amber-400 text-[11px] px-2 py-0.5 bg-slate-800 rounded border border-slate-700 transition-all duration-300">🔑 Admin Login</a>
+        <a id="nav-dashboard" href="index.html" class="text-slate-400 hover:text-orange-400 pb-0.5 transition-all">📊 Dashboard</a>
+        <a id="nav-register" href="register.html" class="text-orange-400 border-b-2 border-orange-400 pb-0.5 transition-all">📝 Team Register</a>
+        <a id="nav-stats" href="profile.html" class="text-slate-400 hover:text-orange-400 pb-0.5 transition-all">🎮 Player Stats</a>
+        <a href="admin.html" class="text-slate-500 hover:text-amber-400 text-[11px] px-2 py-0.5 bg-slate-800 rounded border border-slate-700">🔑 Admin Login</a>
       </nav>
     </header>
 
@@ -55,7 +55,7 @@
       <div class="p-3.5 bg-slate-900/60 rounded-lg border border-slate-700 space-y-3">
         <h3 class="text-xs font-bold text-orange-400 uppercase">👑 Player 1 - Captain Details *</h3>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <input id="captainIgn" type="text" required placeholder="Captain IGN (In Game Name)" class="p-2.5 bg-slate-900 rounded border border-slate-700 text-white text-xs sm:text-sm focus:outline-none focus:border-orange-500" />
+          <input id="captainIgn" type="text" required placeholder="Captain IGN" class="p-2.5 bg-slate-900 rounded border border-slate-700 text-white text-xs sm:text-sm focus:outline-none focus:border-orange-500" />
           <input id="captainUid" type="text" required placeholder="Captain BGMI Character UID" class="p-2.5 bg-slate-900 rounded border border-slate-700 text-white text-xs sm:text-sm focus:outline-none focus:border-orange-500" />
         </div>
       </div>
@@ -86,7 +86,7 @@
 
       <div class="p-3.5 bg-slate-900/40 rounded-lg border border-slate-700/80 space-y-3">
         <div class="flex justify-between items-center">
-          <h3 class="text-xs font-bold text-purple-400 uppercase">🔄 Player 5 Details (Substitute / Optional)</h3>
+          <h3 class="text-xs font-bold text-purple-400 uppercase">🔄 Player 5 Details (Substitute)</h3>
           <span class="text-[10px] bg-purple-900/60 text-purple-300 px-2 py-0.5 rounded uppercase font-bold">Optional</span>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -123,16 +123,16 @@
         <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-700 space-y-1">
           <p class="text-xs text-slate-400 font-bold uppercase">Amount To Pay</p>
           <h2 id="modalFeeAmount" class="text-2xl font-extrabold text-emerald-400">₹0</h2>
-          <p class="text-[11px] text-slate-400 mt-1">UPI ID: <span id="displayUpiId" class="font-mono text-amber-300 font-bold">yourupi@paytm</span></p>
+          <p class="text-[11px] text-slate-400 mt-1">Organizer UPI ID: <span id="displayUpiId" class="font-mono text-amber-300 font-bold">esports@upi</span></p>
         </div>
 
         <div class="flex justify-center my-2">
           <div class="p-3 bg-white rounded-xl shadow-lg border-2 border-emerald-500">
-            <img id="upiQrCodeImg" src="" alt="Scan UPI QR Code to Pay" class="w-48 h-48 object-contain" />
+            <img id="upiQrCodeImg" src="" alt="Scan Organizer UPI QR Code" class="w-48 h-48 object-contain" />
           </div>
         </div>
         
-        <p class="text-[11px] text-slate-300">Scan QR Code via GPay, PhonePe, Paytm or BHIM to pay entry fee.</p>
+        <p class="text-[11px] text-slate-300">Scan QR Code via GPay, PhonePe, Paytm or BHIM to pay entry fee to Organizer.</p>
 
         <div class="space-y-2 text-left">
           <label class="text-[11px] font-bold text-slate-300 uppercase">Enter 12-Digit UTR / Transaction Ref No. *</label>
@@ -148,18 +148,16 @@
   </div>
 
   <script>
-    // ⚡ SET YOUR ACTUAL UPI ID HERE (e.g. 9876543210@paytm)
-    const MY_UPI_ID = "esports@upi";
-
     const urlParams = new URLSearchParams(window.location.search);
     let activeTournamentId = urlParams.get('tid');
     let currentEntryFee = 0;
+    let dynamicOrganizerUpi = "esports@upi"; // Default fallback
 
     if (activeTournamentId) {
       document.getElementById('nav-dashboard').href = `index.html?tid=${activeTournamentId}`;
     }
 
-    // 1. DYNAMICALLY FETCH ACTIVE TOURNAMENT DETAILS
+    // 1. DYNAMICALLY FETCH TOURNAMENT & ORGANIZER UPI ID
     async function fetchActiveTournament() {
       const titleEl = document.getElementById('activeTitle');
       const modeEl = document.getElementById('activeMode');
@@ -178,7 +176,11 @@
           currentEntryFee = Number(data.tournament.entryFee) || 0;
           feeEl.innerText = currentEntryFee > 0 ? `₹${currentEntryFee}` : 'FREE';
           
-          // Update Nav Links
+          // 💳 DYNAMIC ORGANIZER UPI ID FROM DATABASE
+          if (data.tournament.upiId) {
+            dynamicOrganizerUpi = data.tournament.upiId;
+          }
+
           document.getElementById('nav-dashboard').href = `index.html?tid=${activeTournamentId}`;
         } else {
           titleEl.innerText = 'No Active Tournament Available';
@@ -186,17 +188,17 @@
           feeEl.innerText = '₹0';
         }
       } catch (err) {
-        console.warn("Could not load tournament:", err);
         titleEl.innerText = 'BGMI Tournament Portal';
       }
     }
 
-    // 2. PAYMENT MODAL FUNCTIONS
+    // 2. GENERATE DYNAMIC QR CODE WITH ORGANIZER'S UPI ID
     function openPaymentModal(feeAmount) {
       document.getElementById('modalFeeAmount').innerText = `₹${feeAmount}`;
-      document.getElementById('displayUpiId').innerText = MY_UPI_ID;
+      document.getElementById('displayUpiId').innerText = dynamicOrganizerUpi;
 
-      const upiString = `upi://pay?pa=${MY_UPI_ID}&pn=BGMI%20Esports&am=${feeAmount}&cu=INR`;
+      // Dynamic UPI string with Organizer's exact UPI ID & Fee
+      const upiString = `upi://pay?pa=${dynamicOrganizerUpi}&pn=BGMI%20Esports&am=${feeAmount}&cu=INR`;
       const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiString)}`;
 
       document.getElementById('upiQrCodeImg').src = qrApiUrl;
@@ -218,12 +220,10 @@
       submitRegistrationPayload();
     }
 
-    // 3. FORM SUBMIT HANDLER
     function handleRegistration(e) {
       e.preventDefault();
       const utrInput = document.getElementById('transactionId').value.trim();
 
-      // If Paid tournament and UTR not filled, open Payment QR Modal
       if (currentEntryFee > 0 && (!utrInput || utrInput === 'FREE_ENTRY')) {
         openPaymentModal(currentEntryFee);
         return;
@@ -232,7 +232,6 @@
       submitRegistrationPayload();
     }
 
-    // 4. API PAYLOAD SUBMISSION
     async function submitRegistrationPayload() {
       const statusEl = document.getElementById('formStatus');
       const submitBtn = document.getElementById('submitBtn');

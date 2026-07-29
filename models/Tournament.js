@@ -1,27 +1,47 @@
 const mongoose = require('mongoose');
 
 const tournamentSchema = new mongoose.Schema({
-  title: { type: String, required: true },
-  organizerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  mode: { type: String, enum: ['SOLO', 'DUO', 'SQUAD'], default: 'SQUAD' },
-  entryFee: { type: Number, default: 0 },
-  prizePool: { type: Number, required: true },
-  maxSlots: { type: Number, default: 25 },
-  roomDetails: {
-    roomId: { type: String, default: '' },
-    password: { type: String, default: '' },
-    scheduledAt: { type: Date }
+  title: { 
+    type: String, 
+    required: true 
   },
-  pointSystem: {
-    killPoints: { type: Number, default: 1 },
-    placementPoints: {
-      type: Map,
-      of: Number,
-      default: { 1: 10, 2: 6, 3: 5, 4: 4, 5: 3, 6: 2, 7: 1, 8: 1 }
-    }
+  mode: { 
+    type: String, 
+    enum: ['SOLO', 'DUO', 'SQUAD'], 
+    default: 'SQUAD' 
   },
-  registeredTeams: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Team' }],
-  status: { type: String, enum: ['UPCOMING', 'LIVE', 'COMPLETED'], default: 'UPCOMING' }
+  entryFee: { 
+    type: Number, 
+    default: 0 
+  },
+  prizePool: { 
+    type: Number, 
+    default: 0 
+  },
+  maxSlots: { 
+    type: Number, 
+    default: 25 
+  },
+  upiId: { 
+    type: String, 
+    default: 'esports@upi' // 💳 Organizer's Custom UPI ID
+  },
+  registrationDeadline: { 
+    type: Date 
+  },
+  schedule: { 
+    type: Date 
+  },
+  status: { 
+    type: String, 
+    enum: ['UPCOMING', 'LIVE', 'COMPLETED'], 
+    default: 'UPCOMING' 
+  },
+  organizerId: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'User', 
+    required: true 
+  }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Tournament', tournamentSchema);
