@@ -32,7 +32,7 @@ const io = new Server(server, {
 
 const JWT_SECRET = process.env.JWT_SECRET || "bgmi_secret_admin_key_2026";
 
-// Ensure upload directory exists for OCR
+// Ensure upload directory exists for OCR uploads
 const uploadDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
@@ -92,7 +92,7 @@ app.post('/api/admin/signup', async (req, res) => {
       name: name || "Organizer Admin",
       email,
       password: hashedPassword,
-role: "ADMIN"
+      role: "ADMIN"
     });
 
     await newAdmin.save();
