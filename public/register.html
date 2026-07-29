@@ -2,250 +2,233 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BGMI Team Registration & Slot Locker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Squad Registration - BGMI Esports</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen p-4 md:p-8 font-sans">
+<body class="bg-slate-900 text-slate-100 min-h-screen p-3 sm:p-6 font-sans antialiased">
 
-  <div class="max-w-3xl mx-auto space-y-6">
+  <div class="max-w-4xl mx-auto space-y-6">
     
-    <header class="flex justify-between items-center border-b border-slate-700 pb-4">
+    <header class="flex flex-col sm:flex-row justify-between items-center border-b border-slate-700 pb-4 gap-3">
       <div class="flex items-center space-x-2">
         <span class="text-2xl">🎮</span>
-        <h1 class="text-lg md:text-xl font-extrabold text-orange-500 tracking-wider whitespace-nowrap">
-          BGMI ESPORTS
+        <h1 class="text-base sm:text-xl font-extrabold text-orange-500 tracking-wider">
+          BGMI TOURNAMENT PORTAL
         </h1>
       </div>
-      <nav class="flex items-center space-x-4 md:space-x-6 text-xs md:text-sm font-semibold whitespace-nowrap">
-        <a href="index.html" class="text-slate-400 hover:text-orange-400 transition">Dashboard</a>
-        <a href="register.html" class="text-orange-400 border-b-2 border-orange-400 pb-1">Team Register</a>
-        <a href="profile.html" class="text-slate-400 hover:text-orange-400 transition">Player Stats</a>
-        <a href="admin.html" class="bg-orange-600/20 text-orange-400 hover:bg-orange-600 hover:text-white px-3 py-1 rounded-lg border border-orange-500/30 transition">🔑 Admin Login</a>
+      <nav class="flex flex-wrap justify-center items-center gap-2 sm:gap-4 text-xs sm:text-sm font-semibold">
+        <a id="nav-dashboard" href="index.html" class="text-slate-400 hover:text-orange-400 pb-0.5">📊 Dashboard</a>
+        <a id="nav-register" href="register.html" class="text-orange-400 border-b-2 border-orange-400 pb-0.5">📝 Team Register</a>
+        <a id="nav-stats" href="profile.html" class="text-slate-400 hover:text-orange-400 pb-0.5">🎮 Player Stats</a>
+        <a href="admin.html" class="text-slate-500 hover:text-amber-400 text-[11px] px-2 py-0.5 bg-slate-800 rounded border border-slate-700">🔑 Admin Login</a>
       </nav>
     </header>
 
-    <div id="tournamentBanner" class="bg-slate-800/90 p-5 rounded-xl border border-orange-500/40 shadow-lg flex justify-between items-center">
-      <div>
-        <p class="text-xs text-slate-400 font-bold uppercase tracking-wider">Active Tournament Selected</p>
-        <h2 id="activeTourneyTitle" class="text-xl font-extrabold text-orange-400 mt-0.5">Loading Active Tournament...</h2>
-      </div>
-      <div class="text-right">
-        <span id="activeTourneyMode" class="text-xs font-bold bg-cyan-900 text-cyan-200 px-3 py-1 rounded-full uppercase">SQUAD</span>
-        <p class="text-xs text-slate-400 font-bold mt-2">ENTRY FEE</p>
-        <p id="activeTourneyFee" class="text-xl font-black text-emerald-400">₹0</p>
+    <div class="bg-slate-800 p-4 sm:p-6 rounded-xl border border-orange-500/40 shadow-xl relative overflow-hidden">
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+        <div>
+          <p class="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Active Tournament Selected</p>
+          <h2 id="activeTitle" class="text-lg sm:text-2xl font-extrabold text-orange-400">Loading Active Tournament...</h2>
+        </div>
+        <div class="flex items-center gap-3">
+          <span id="activeMode" class="bg-cyan-900/80 text-cyan-300 text-xs px-2.5 py-1 rounded-full font-bold">SQUAD</span>
+          <div class="text-right">
+            <p class="text-[10px] text-slate-400 uppercase font-bold">Entry Fee</p>
+            <p id="activeFee" class="text-lg sm:text-xl font-extrabold text-emerald-400">₹0</p>
+          </div>
+        </div>
       </div>
     </div>
 
-    <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg space-y-6">
+    <form id="registrationForm" onsubmit="handleRegistration(event)" class="bg-slate-800 p-4 sm:p-6 rounded-xl border border-slate-700 shadow-xl space-y-5">
       
+      <h2 class="text-base sm:text-lg font-bold text-white border-b border-slate-700 pb-2 flex items-center gap-2">
+        📝 Squad & Player Registration
+      </h2>
+
       <div>
-        <label class="text-xs font-bold text-orange-400 uppercase tracking-wider">Team Name *</label>
-        <input id="teamName" type="text" placeholder="e.g. GodLike Esports" 
-          class="w-full p-3 mt-1 bg-slate-900 rounded-lg border border-slate-700 text-white focus:outline-none focus:border-orange-500 text-sm" />
+        <label class="text-xs font-bold text-slate-300 uppercase tracking-wider">Team / Squad Name *</label>
+        <input id="teamName" type="text" required placeholder="e.g. GodLike Esports" class="w-full p-3 mt-1 bg-slate-900 rounded-lg border border-slate-700 text-white text-xs sm:text-sm focus:outline-none focus:border-orange-500" />
       </div>
 
-      <div class="bg-slate-900/60 p-4 rounded-lg border border-slate-700/80 space-y-3">
-        <h3 class="text-sm font-bold text-amber-400 flex items-center gap-2">👑 Player 1 - Captain Details *</h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <input id="captainIgn" type="text" placeholder="Captain IGN (e.g. JONATHAN)" class="p-3 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-amber-500" />
-          <input id="captainUid" type="text" placeholder="Captain BGMI UID (e.g. 5123456789)" class="p-3 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-amber-500" />
+      <div class="p-3.5 bg-slate-900/60 rounded-lg border border-slate-700 space-y-3">
+        <h3 class="text-xs font-bold text-orange-400 uppercase">👑 Player 1 - Captain Details *</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <input id="captainIgn" type="text" required placeholder="Captain IGN (In Game Name)" class="p-2.5 bg-slate-900 rounded border border-slate-700 text-white text-xs sm:text-sm focus:outline-none focus:border-orange-500" />
+          <input id="captainUid" type="text" required placeholder="Captain BGMI Character UID (Numeric)" class="p-2.5 bg-slate-900 rounded border border-slate-700 text-white text-xs sm:text-sm focus:outline-none focus:border-orange-500" />
         </div>
       </div>
 
-      <div class="bg-slate-900/60 p-4 rounded-lg border border-slate-700/80 space-y-3">
-        <h3 class="text-sm font-bold text-cyan-400">🎯 Player 2 Details</h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <input id="p2Ign" type="text" placeholder="Player 2 IGN" class="p-3 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-cyan-500" />
-          <input id="p2Uid" type="text" placeholder="Player 2 BGMI UID" class="p-3 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-cyan-500" />
+      <div class="p-3.5 bg-slate-900/60 rounded-lg border border-slate-700 space-y-3">
+        <h3 class="text-xs font-bold text-cyan-400 uppercase">🎮 Player 2 Details *</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <input id="p2Ign" type="text" required placeholder="Player 2 IGN" class="p-2.5 bg-slate-900 rounded border border-slate-700 text-white text-xs sm:text-sm focus:outline-none focus:border-cyan-500" />
+          <input id="p2Uid" type="text" required placeholder="Player 2 BGMI UID" class="p-2.5 bg-slate-900 rounded border border-slate-700 text-white text-xs sm:text-sm focus:outline-none focus:border-cyan-500" />
         </div>
       </div>
 
-      <div class="bg-slate-900/60 p-4 rounded-lg border border-slate-700/80 space-y-3">
-        <h3 class="text-sm font-bold text-cyan-400">🎯 Player 3 Details</h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <input id="p3Ign" type="text" placeholder="Player 3 IGN" class="p-3 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-cyan-500" />
-          <input id="p3Uid" type="text" placeholder="Player 3 BGMI UID" class="p-3 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-cyan-500" />
+      <div class="p-3.5 bg-slate-900/60 rounded-lg border border-slate-700 space-y-3">
+        <h3 class="text-xs font-bold text-cyan-400 uppercase">🎮 Player 3 Details *</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <input id="p3Ign" type="text" required placeholder="Player 3 IGN" class="p-2.5 bg-slate-900 rounded border border-slate-700 text-white text-xs sm:text-sm focus:outline-none focus:border-cyan-500" />
+          <input id="p3Uid" type="text" required placeholder="Player 3 BGMI UID" class="p-2.5 bg-slate-900 rounded border border-slate-700 text-white text-xs sm:text-sm focus:outline-none focus:border-cyan-500" />
         </div>
       </div>
 
-      <div class="bg-slate-900/60 p-4 rounded-lg border border-slate-700/80 space-y-3">
-        <h3 class="text-sm font-bold text-cyan-400">🎯 Player 4 Details</h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <input id="p4Ign" type="text" placeholder="Player 4 IGN" class="p-3 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-cyan-500" />
-          <input id="p4Uid" type="text" placeholder="Player 4 BGMI UID" class="p-3 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-cyan-500" />
+      <div class="p-3.5 bg-slate-900/60 rounded-lg border border-slate-700 space-y-3">
+        <h3 class="text-xs font-bold text-cyan-400 uppercase">🎮 Player 4 Details *</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <input id="p4Ign" type="text" required placeholder="Player 4 IGN" class="p-2.5 bg-slate-900 rounded border border-slate-700 text-white text-xs sm:text-sm focus:outline-none focus:border-cyan-500" />
+          <input id="p4Uid" type="text" required placeholder="Player 4 BGMI UID" class="p-2.5 bg-slate-900 rounded border border-slate-700 text-white text-xs sm:text-sm focus:outline-none focus:border-cyan-500" />
         </div>
       </div>
 
-      <div class="bg-slate-900/40 p-4 rounded-lg border border-slate-700/50 space-y-3">
+      <div class="p-3.5 bg-slate-900/40 rounded-lg border border-slate-700/80 space-y-3">
         <div class="flex justify-between items-center">
-          <h3 class="text-sm font-bold text-purple-400">🔄 Player 5 Details (Substitute / Optional)</h3>
-          <span class="text-[10px] bg-purple-900/80 text-purple-200 px-2 py-0.5 rounded uppercase font-bold">Optional</span>
+          <h3 class="text-xs font-bold text-purple-400 uppercase">🔄 Player 5 Details (Substitute / Optional)</h3>
+          <span class="text-[10px] bg-purple-900/60 text-purple-300 px-2 py-0.5 rounded uppercase font-bold">Optional</span>
         </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <input id="p5Ign" type="text" placeholder="Player 5 IGN (Optional)" class="p-3 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-purple-500" />
-          <input id="p5Uid" type="text" placeholder="Player 5 BGMI UID (Optional)" class="p-3 bg-slate-900 rounded-lg border border-slate-700 text-white text-sm focus:outline-none focus:border-purple-500" />
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <input id="p5Ign" type="text" placeholder="Player 5 IGN (Optional)" class="p-2.5 bg-slate-900 rounded border border-slate-700 text-white text-xs sm:text-sm focus:outline-none focus:border-purple-500" />
+          <input id="p5Uid" type="text" placeholder="Player 5 BGMI UID (Optional)" class="p-2.5 bg-slate-900 rounded border border-slate-700 text-white text-xs sm:text-sm focus:outline-none focus:border-purple-500" />
         </div>
       </div>
 
-      <button id="registerBtn" onclick="registerAndPay()" 
-        class="w-full bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white p-3.5 rounded-lg font-bold transition shadow-lg active:scale-95 text-base">
+      <div id="utrSection" class="p-4 bg-emerald-950/40 rounded-xl border border-emerald-500/40 space-y-3">
+        <h3 class="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+          💳 Payment UTR Verification (12-Digit Transaction ID)
+        </h3>
+        <p class="text-[11px] text-slate-300">Scan QR Code or pay via UPI, then enter the 12-Digit UTR Ref Number from GPay / PhonePe / Paytm to confirm your registration.</p>
+        <input id="transactionId" type="text" placeholder="Enter 12-Digit UTR Ref No. (e.g. 420198273615)" class="w-full p-3 bg-slate-900 rounded-lg border border-slate-700 text-white text-xs sm:text-sm font-mono focus:outline-none focus:border-emerald-500" />
+      </div>
+
+      <button type="submit" id="submitBtn" class="w-full bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white p-3.5 rounded-xl font-extrabold transition shadow-lg text-sm sm:text-base active:scale-95">
         🚀 Register Team & Reserve Slot
       </button>
 
-      <p id="regStatus" class="text-xs text-center h-4 font-semibold mt-2"></p>
-    </div>
+      <p id="formStatus" class="text-xs text-center font-bold h-4"></p>
+    </form>
 
-  </div>
-
-  <div id="paymentModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
-    <div class="bg-slate-800 max-w-sm w-full p-6 rounded-2xl border border-emerald-500/40 shadow-2xl text-center space-y-4 relative">
-      <h3 class="text-lg font-extrabold text-emerald-400">💳 UPI Entry Fee Checkout</h3>
-      <p class="text-xs text-slate-300">Scan QR Code using GPay, PhonePe, or Paytm to pay.</p>
-      
-      <div class="bg-white p-3 rounded-xl inline-block border-2 border-emerald-500">
-        <img id="qrImage" src="" alt="UPI QR Code" class="w-44 h-48 mx-auto" />
-      </div>
-
-      <div class="bg-slate-900 p-3 rounded-lg border border-slate-700 text-xs space-y-1 text-left">
-        <p class="text-slate-400 flex justify-between"><span>Amount:</span> <span id="modalAmount" class="font-extrabold text-emerald-400">₹0</span></p>
-        <p class="text-slate-400 flex justify-between"><span>UPI ID:</span> <span id="displayUpiId" class="font-mono text-amber-400 font-bold">---</span></p>
-      </div>
-
-      <div class="text-left space-y-1">
-        <label class="text-[11px] font-bold text-amber-400 uppercase tracking-wider">Enter 12-Digit UTR / Ref No. *</label>
-        <input id="utrInput" type="text" maxlength="12" placeholder="e.g. 420198273615" 
-          class="w-full p-3 bg-slate-900 rounded-lg border border-slate-700 text-white font-mono text-xs focus:outline-none focus:border-emerald-500" />
-        <p id="utrError" class="text-[10px] text-rose-400 hidden">Please enter valid 12-digit UTR number from UPI app.</p>
-      </div>
-
-      <button onclick="confirmUpiPayment()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-lg font-bold text-sm transition shadow-lg active:scale-95">
-        ✅ Submit UTR & Lock Slot
-      </button>
-      
-      <button onclick="closePaymentModal()" class="text-xs text-slate-400 hover:text-rose-400 underline block mx-auto pt-1">
-        Cancel Registration
-      </button>
-    </div>
   </div>
 
   <script>
-    // ⚙️ SET YOUR ACTUAL UPI ID HERE:
-    const MY_UPI_ID = "tyagi2002@ptyes"; // e.g. "9876543210@paytm" or "username@okaxis"
+    const urlParams = new URLSearchParams(window.location.search);
+    let activeTournamentId = urlParams.get('tid');
 
-    let activeTournament = null;
-    let pendingTeamData = null;
+    if (activeTournamentId) {
+      document.getElementById('nav-dashboard').href = `index.html?tid=${activeTournamentId}`;
+    }
 
-    async function loadActiveTournament() {
+    // 1. DYNAMICALLY FETCH ACTIVE TOURNAMENT DETAILS
+    async function fetchActiveTournament() {
+      const titleEl = document.getElementById('activeTitle');
+      const modeEl = document.getElementById('activeMode');
+      const feeEl = document.getElementById('activeFee');
+
       try {
-        const res = await fetch('/api/tournaments/active');
+        const query = activeTournamentId ? `?tid=${activeTournamentId}&t=${Date.now()}` : `?t=${Date.now()}`;
+        const res = await fetch('/api/tournaments/get' + query, { cache: 'no-store' });
         const data = await res.json();
-        
-        if (data.success && data.tournament) {
-          activeTournament = data.tournament;
-          document.getElementById('activeTourneyTitle').innerText = activeTournament.title || "BGMI Tournament";
-          document.getElementById('activeTourneyMode').innerText = activeTournament.mode || "SQUAD";
-          
-          const fee = activeTournament.entryFee ?? 0;
-          document.getElementById('activeTourneyFee').innerText = fee > 0 ? `₹${fee}` : "FREE";
 
-          const btn = document.getElementById('registerBtn');
-          btn.innerText = fee > 0 ? `💳 Pay ₹${fee} via UPI & Lock Squad Slot` : `🚀 Register Team & Lock Free Slot`;
+        if (data.success && data.tournament) {
+          activeTournamentId = data.tournament._id || data.tournamentId;
+          titleEl.innerText = data.tournament.title || 'BGMI Esports Tournament';
+          modeEl.innerText = (data.tournament.mode || 'SQUAD').toUpperCase();
+          
+          const fee = Number(data.tournament.entryFee) || 0;
+          feeEl.innerText = fee > 0 ? `₹${fee}` : 'FREE';
+          
+          // Update Nav Links
+          document.getElementById('nav-dashboard').href = `index.html?tid=${activeTournamentId}`;
         } else {
-          document.getElementById('activeTourneyTitle').innerText = "No Active Tournament Found";
-          document.getElementById('activeTourneyFee').innerText = "N/A";
+          titleEl.innerText = 'No Active Tournament Available';
+          modeEl.innerText = 'N/A';
+          feeEl.innerText = '₹0';
         }
       } catch (err) {
-        console.warn("Could not load active tournament:", err);
+        console.warn("Could not load tournament:", err);
+        titleEl.innerText = 'BGMI Tournament Portal';
       }
     }
 
-    async function registerAndPay() {
+    // 2. HANDLE TEAM REGISTRATION SUBMISSION
+    async function handleRegistration(e) {
+      e.preventDefault();
+      const statusEl = document.getElementById('formStatus');
+      const submitBtn = document.getElementById('submitBtn');
+
       const teamName = document.getElementById('teamName').value.trim();
       const captainIgn = document.getElementById('captainIgn').value.trim();
       const captainUid = document.getElementById('captainUid').value.trim();
-      const statusEl = document.getElementById('regStatus');
+      const transactionId = document.getElementById('transactionId').value.trim();
 
-      if (!teamName || !captainIgn || !captainUid) {
-        statusEl.className = "text-xs text-center font-semibold text-rose-400";
-        statusEl.innerText = "❌ Team Name & Captain Details are required!";
+      const p2Ign = document.getElementById('p2Ign').value.trim();
+      const p2Uid = document.getElementById('p2Uid').value.trim();
+      const p3Ign = document.getElementById('p3Ign').value.trim();
+      const p3Uid = document.getElementById('p3Uid').value.trim();
+      const p4Ign = document.getElementById('p4Ign').value.trim();
+      const p4Uid = document.getElementById('p4Uid').value.trim();
+      
+      const p5Ign = document.getElementById('p5Ign').value.trim();
+      const p5Uid = document.getElementById('p5Uid').value.trim();
+
+      if (!teamName || !captainIgn || !captainUid || !p2Ign || !p2Uid || !p3Ign || !p3Uid || !p4Ign || !p4Uid) {
+        statusEl.className = "text-xs text-center font-bold text-rose-400";
+        statusEl.innerText = "❌ Please fill out all required squad player details!";
         return;
       }
 
-      const members = [];
-      ['p2', 'p3', 'p4', 'p5'].forEach(id => {
-        const ign = document.getElementById(`${id}Ign`).value.trim();
-        const bgmiUid = document.getElementById(`${id}Uid`).value.trim();
-        if (ign && bgmiUid) members.push({ ign, bgmiUid });
-      });
+      const members = [
+        { ign: p2Ign, bgmiUid: p2Uid },
+        { ign: p3Ign, bgmiUid: p3Uid },
+        { ign: p4Ign, bgmiUid: p4Uid }
+      ];
 
-      const fee = activeTournament ? (activeTournament.entryFee || 0) : 0;
-
-      if (fee > 0) {
-        pendingTeamData = { teamName, captainIgn, captainUid, members };
-        document.getElementById('modalAmount').innerText = `₹${fee}`;
-        document.getElementById('displayUpiId').innerText = MY_UPI_ID;
-        document.getElementById('utrInput').value = "";
-        document.getElementById('utrError').classList.add('hidden');
-        
-        // Generate Dynamic UPI QR Code
-        const upiUrl = `upi://pay?pa=${encodeURIComponent(MY_UPI_ID)}&pn=BGMI_Tournament&am=${fee}&cu=INR`;
-        document.getElementById('qrImage').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiUrl)}`;
-        
-        document.getElementById('paymentModal').classList.remove('hidden');
-        return;
+      if (p5Ign && p5Uid) {
+        members.push({ ign: p5Ign, bgmiUid: p5Uid });
       }
 
-      saveRegistration(teamName, captainIgn, captainUid, members, "FREE");
-    }
-
-    async function confirmUpiPayment() {
-      if (!pendingTeamData) return;
-      const utrVal = document.getElementById('utrInput').value.trim();
-      const utrErr = document.getElementById('utrError');
-
-      // Validation: UTR must be minimum 8-12 alphanumeric characters
-      if (!utrVal || utrVal.length < 8) {
-        utrErr.classList.remove('hidden');
-        return;
-      }
-
-      utrErr.classList.add('hidden');
-      document.getElementById('paymentModal').classList.add('hidden');
-      saveRegistration(pendingTeamData.teamName, pendingTeamData.captainIgn, pendingTeamData.captainUid, pendingTeamData.members, utrVal);
-    }
-
-    function closePaymentModal() {
-      document.getElementById('paymentModal').classList.add('hidden');
-    }
-
-    async function saveRegistration(teamName, captainIgn, captainUid, members, transactionId) {
-      const statusEl = document.getElementById('regStatus');
-      statusEl.className = "text-xs text-center font-semibold text-orange-400";
-      statusEl.innerText = "⏳ Saving team & locking slot...";
+      statusEl.className = "text-xs text-center font-bold text-amber-400";
+      statusEl.innerText = "⏳ Registering squad & reserving slot...";
+      submitBtn.disabled = true;
 
       try {
-        const regRes = await fetch('/api/teams/register', {
+        const res = await fetch('/api/teams/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ teamName, captainIgn, captainUid, members, transactionId, tournamentId: activeTournament?._id })
+          body: JSON.stringify({
+            tournamentId: activeTournamentId,
+            teamName,
+            captainIgn,
+            captainUid,
+            members,
+            transactionId: transactionId || 'FREE_ENTRY'
+          })
         });
-        const regData = await regRes.json();
+        const data = await res.json();
 
-        if (regRes.ok) {
-          statusEl.className = "text-xs text-center font-semibold text-emerald-400";
-          statusEl.innerText = `🎉 Success! Squad "${teamName}" Registered & Slot #${regData.team.slotNumber} Locked!`;
+        if (res.ok && data.success) {
+          statusEl.className = "text-xs text-center font-bold text-emerald-400";
+          statusEl.innerText = `✅ ${data.message}`;
+          document.getElementById('registrationForm').reset();
+          
+          setTimeout(() => {
+            window.location.href = `index.html?tid=${activeTournamentId || ''}`;
+          }, 1500);
         } else {
-          statusEl.className = "text-xs text-center font-semibold text-rose-400";
-          statusEl.innerText = `❌ ${regData.error || 'Registration failed'}`;
+          statusEl.className = "text-xs text-center font-bold text-rose-400";
+          statusEl.innerText = `❌ ${data.error || 'Registration failed!'}`;
+          submitBtn.disabled = false;
         }
       } catch (err) {
-        statusEl.className = "text-xs text-center font-semibold text-rose-400";
-        statusEl.innerText = "❌ Server error occurred.";
+        statusEl.className = "text-xs text-center font-bold text-rose-400";
+        statusEl.innerText = "❌ Server communication error.";
+        submitBtn.disabled = false;
       }
     }
 
-    window.onload = loadActiveTournament;
+    window.onload = fetchActiveTournament;
   </script>
 </body>
 </html>

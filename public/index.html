@@ -64,8 +64,8 @@
         </div>
 
         <div class="flex space-x-2 w-full sm:w-auto justify-end">
-          <button onclick="exportLeaderboardToExcel()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1">📊 Excel</button>
-          <button onclick="exportLeaderboardToPDF()" class="bg-rose-600 hover:bg-rose-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1">📄 PDF</button>
+          <button onclick="exportLeaderboardToExcel()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition">📊 Excel</button>
+          <button onclick="exportLeaderboardToPDF()" class="bg-rose-600 hover:bg-rose-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition">📄 PDF</button>
         </div>
       </div>
 
@@ -135,7 +135,6 @@
           document.getElementById('activeTitle').innerText = data.tournament.title || 'BGMI Tournament';
           document.getElementById('activeMode').innerText = `Mode: ${data.tournament.mode || 'SQUAD'}`;
           
-          // Display Entry Fee & Prize Pool
           const fee = Number(data.tournament.entryFee) || 0;
           document.getElementById('activeFee').innerText = fee > 0 ? `₹${fee}` : 'FREE';
           document.getElementById('activePrize').innerText = `₹${data.tournament.prizePool || 0}`;
@@ -146,7 +145,7 @@
           document.getElementById('activeTitle').innerText = 'No Active Tournament';
           document.getElementById('activeFee').innerText = '₹0';
           document.getElementById('activePrize').innerText = '₹0';
-          document.getElementById('registeredTeamsBody').innerHTML = `<tr><td colspan="6" class="text-center py-6 text-slate-500 italic">No tournament found for this link.</td></tr>`;
+          document.getElementById('registeredTeamsBody').innerHTML = `<tr><td colspan="6" class="text-center py-6 text-slate-500 italic">No active tournament found.</td></tr>`;
         }
       } catch (err) {
         console.warn("Error fetching tournament:", err);
@@ -184,7 +183,6 @@
           document.getElementById('registeredCount').innerText = `${data.teams.length} Squads`;
           
           document.getElementById('registeredTeamsBody').innerHTML = data.teams.map((team) => {
-            // Format squad member names
             const memberNames = team.members && team.members.length > 0
               ? team.members.map(m => m.ign).filter(Boolean).join(', ')
               : (team.captain?.ign || 'N/A');

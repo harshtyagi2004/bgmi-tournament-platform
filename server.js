@@ -27,12 +27,14 @@ const Blacklist = require('./models/Blacklist');
 const app = express();
 const JWT_SECRET = process.env.JWT_SECRET || "bgmi_secret_admin_key_2026";
 
+// --- ENSURE MULTER UPLOADS DIRECTORY EXISTS ---
 const uploadDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 const upload = multer({ dest: uploadDir });
 
+// --- MIDDLEWARE ---
 app.use(cors());
 app.use(express.json());
 
@@ -44,8 +46,12 @@ app.use((req, res, next) => {
   next();
 });
 
+// Serve static frontend files from /public folder
 app.use(express.static('public'));
 
+// ==========================================
+// 🏠 ROOT REDIRECT ROUTE
+// ==========================================
 app.get('/', (req, res) => {
   res.redirect('/index.html');
 });
@@ -54,6 +60,7 @@ app.get('/', (req, res) => {
 // 🔐 ADMIN AUTHENTICATION APIs
 // ==========================================
 
+// 1. ADMIN SIGN UP / REGISTER
 app.post('/api/admin/signup', async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -87,6 +94,7 @@ app.post('/api/admin/signup', async (req, res) => {
   }
 });
 
+// 2. ADMIN SIGN IN / LOGIN
 app.post('/api/admin/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -113,39 +121,82 @@ app.post('/api/admin/login', async (req, res) => {
   }
 });
 
+// 3. STRICT TOKEN VERIFICATION (PER DEVICE)
 app.post('/api/admin/verify', async (req, res) => {
   try {
     const { token } = req.body;
-    if (!token) return res.status(401).json({ success: false, error: "No token" });
+    if (!token) return res.status(401).json({ success: false, error: "No session token provided!" });
 
     const decoded = jwt.decode(token, JWT_SECRET);
     const admin = await User.findById(decoded.id);
 
     if (!admin || admin.role !== "ADMIN") {
-      return res.status(401).json({ success: false, error: "Unauthorized" });
+      return res.status(401).json({ success: false, error: "Unauthorized access!" });
     }
 
     res.status(200).json({ success: true, admin: { id: admin._id, name: admin.name, email: admin.email } });
   } catch (err) {
-    res.status(401).json({ success: false, error: "Invalid token" });
+    res.status(401).json({ success: false, error: "Invalid or expired session token!" });
   }
 });
 
+// 4. RESET / CLEAR DUMMY TOURNAMENTS FROM DATABASE
 app.post('/api/admin/reset-tournaments', async (req, res) => {
   try {
     await Tournament.deleteMany({});
     await Team.deleteMany({});
-    res.status(200).json({ success: true, message: "Database cleared!" });
+    res.status(200).json({ success: true, message: "Database cleared successfully! All old dummy data removed." });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
 // ==========================================
-// 🚀 DYNAMIC MULTI-TENANT TOURNAMENT APIs
+// 🛡️ ANTI-CHEAT BLACKLIST APIs
 // ==========================================
 
-// FETCH ACTIVE/SPECIFIC TOURNAMENT
+app.post('/api/admin/ban-player', async (req, res) => {
+  try {
+    const { bgmiUid, reason } = req.body;
+    if (!bgmiUid) return res.status(400).json({ success: false, error: "BGMI UID is required!" });
+
+    const bannedPlayer = await Blacklist.findOneAndUpdate(
+      { bgmiUid },
+      { bgmiUid, reason: reason || 'Hacking / Suspicious Gameplay' },
+      { upsert: true, new: true }
+    );
+    res.status(200).json({ success: true, message: `UID ${bgmiUid} successfully BANNED!`, bannedPlayer });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/admin/banned-players', async (req, res) => {
+  try {
+    const bannedList = await Blacklist.find().sort({ createdAt: -1 });
+    res.status(200).json({ success: true, banned: bannedList });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/admin/unban-player', async (req, res) => {
+  try {
+    const { bgmiUid } = req.body;
+    if (!bgmiUid) return res.status(400).json({ success: false, error: "BGMI UID is required!" });
+
+    await Blacklist.deleteOne({ bgmiUid });
+    res.status(200).json({ success: true, message: `UID ${bgmiUid} UNBANNED successfully!` });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ==========================================
+// 🚀 DYNAMIC TOURNAMENT APIs
+// ==========================================
+
+// 5. FETCH ACTIVE OR SPECIFIC TOURNAMENT BY ID
 app.get('/api/tournaments/get', async (req, res) => {
   try {
     const { tid } = req.query;
@@ -154,6 +205,7 @@ app.get('/api/tournaments/get', async (req, res) => {
     if (tid && mongoose.Types.ObjectId.isValid(tid)) {
       tournament = await Tournament.findById(tid);
     } else {
+      // Fallback: Fetch the most recently created tournament
       tournament = await Tournament.findOne().sort({ createdAt: -1 });
     }
 
@@ -171,7 +223,7 @@ app.get('/api/tournaments/get', async (req, res) => {
   }
 });
 
-// CREATE TOURNAMENT
+// 6. CREATE & PUBLISH NEW TOURNAMENT
 app.post('/api/tournaments/create', async (req, res) => {
   try {
     const { title, mode, entryFee, prizePool, maxSlots, registrationDeadline, schedule, token } = req.body;
@@ -212,7 +264,7 @@ app.post('/api/tournaments/create', async (req, res) => {
   }
 });
 
-// FETCH REGISTERED TEAMS
+// 7. FETCH REGISTERED TEAMS FOR A TOURNAMENT
 app.get('/api/tournaments/teams', async (req, res) => {
   try {
     const { tid } = req.query;
@@ -235,7 +287,7 @@ app.get('/api/tournaments/teams', async (req, res) => {
 });
 
 // ==========================================
-// 👥 TEAM REGISTRATION
+// 👥 TEAM REGISTRATION & SLOT ALLOCATION
 // ==========================================
 
 app.post('/api/teams/register', async (req, res) => {
@@ -249,25 +301,26 @@ app.post('/api/teams/register', async (req, res) => {
     }
 
     if (!targetTid) {
-      return res.status(400).json({ success: false, error: "No active tournament found." });
+      return res.status(400).json({ success: false, error: "No active tournament found. Please wait for Admin to host one." });
     }
 
     if (!teamName || !captainIgn || !captainUid) {
       return res.status(400).json({ success: false, error: "Team Name and Captain details are required!" });
     }
 
+    // Collect all UIDs in the squad
     const allSquadUids = [captainUid, ...(members ? members.map(m => m.bgmiUid) : [])].filter(Boolean);
 
-    // Anti-Cheat Blacklist Check
+    // 1. Anti-Cheat Blacklist Verification
     const isBanned = await Blacklist.findOne({ bgmiUid: { $in: allSquadUids } });
     if (isBanned) {
       return res.status(400).json({ 
         success: false, 
-        error: `🚨 ANTI-CHEAT ALERT: UID (${isBanned.bgmiUid}) is BANNED due to: ${isBanned.reason}` 
+        error: `🚨 ANTI-CHEAT ALERT: BGMI UID (${isBanned.bgmiUid}) is BANNED! Reason: ${isBanned.reason}` 
       });
     }
 
-    // Duplicate Check
+    // 2. Duplicate Check in the SAME Tournament
     const existingTeam = await Team.findOne({
       tournamentId: targetTid,
       $or: [
@@ -283,6 +336,7 @@ app.post('/api/teams/register', async (req, res) => {
       });
     }
 
+    // Auto-calculate slot number
     const count = await Team.countDocuments({ tournamentId: targetTid });
     const assignedSlot = count + 1;
 
@@ -303,9 +357,23 @@ app.post('/api/teams/register', async (req, res) => {
 
     await newTeam.save();
 
+    // Create or update player profiles
+    for (const player of squadMembers) {
+      if (player.bgmiUid) {
+        await User.findOneAndUpdate(
+          { bgmiUid: player.bgmiUid },
+          { 
+            $setOnInsert: { name: player.ign, email: `${player.bgmiUid}@esports.com`, ign: player.ign },
+            $inc: { "stats.tournamentsPlayed": 1 } 
+          },
+          { upsert: true, new: true }
+        );
+      }
+    }
+
     res.status(200).json({ 
       success: true, 
-      message: `Squad "${teamName}" Registered Successfully! Slot #${assignedSlot} Locked.`, 
+      message: `Squad "${teamName}" Registered Successfully! Slot #${assignedSlot} Reserved.`, 
       team: newTeam 
     });
   } catch (err) {
@@ -314,43 +382,8 @@ app.post('/api/teams/register', async (req, res) => {
 });
 
 // ==========================================
-// 🛡️ OTHER ENDPOINTS
+// 📷 OCR, DISPATCHER, PAYMENT & SCORES
 // ==========================================
-
-app.post('/api/admin/ban-player', async (req, res) => {
-  try {
-    const { bgmiUid, reason } = req.body;
-    if (!bgmiUid) return res.status(400).json({ success: false, error: "BGMI UID is required!" });
-
-    const bannedPlayer = await Blacklist.findOneAndUpdate(
-      { bgmiUid },
-      { bgmiUid, reason: reason || 'Hacking / Suspicious Gameplay' },
-      { upsert: true, new: true }
-    );
-    res.status(200).json({ success: true, message: `UID ${bgmiUid} BANNED!`, bannedPlayer });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-app.get('/api/admin/banned-players', async (req, res) => {
-  try {
-    const bannedList = await Blacklist.find().sort({ createdAt: -1 });
-    res.status(200).json({ success: true, banned: bannedList });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-app.post('/api/admin/unban-player', async (req, res) => {
-  try {
-    const { bgmiUid } = req.body;
-    await Blacklist.deleteOne({ bgmiUid });
-    res.status(200).json({ success: true, message: `UID ${bgmiUid} UNBANNED!` });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
 
 app.post('/api/tournaments/upload-score-ocr', upload.single('screenshot'), processScoreScreenshot);
 app.post('/api/tournaments/broadcast-room', broadcastRoom);
@@ -364,21 +397,50 @@ app.get('/api/players/:uid', async (req, res) => {
   try {
     const { uid } = req.params;
     let player = await User.findOne({ bgmiUid: uid });
-    if (!player) return res.status(404).json({ success: false, error: "Player profile not found." });
+    
+    if (!player) {
+      return res.status(404).json({ success: false, error: "Player profile not found." });
+    }
+
     res.status(200).json({ success: true, player });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
+// ==========================================
+// 🛠️ SERVER INITIALIZATION & PORT FAILOVER
+// ==========================================
 const startServer = async () => {
   try {
     await connectDB();
-    redis.connect().catch(() => {});
+
+    redis.connect().catch(() => {
+      console.warn("⚠️ Redis is offline. Running with fallback DB queries.");
+    });
+
     const PORT = process.env.PORT || 5001;
-    app.listen(PORT, () => console.log(`🚀 Server live on port: ${PORT}`));
+
+    const listenWithFallback = (port) => {
+      const server = app.listen(port, () => {
+        console.log(`🚀 Platform live on: http://localhost:${port}`);
+      });
+
+      server.on('error', (err) => {
+        if (err.code === 'EADDRINUSE') {
+          console.warn(`⚠️ Port ${port} occupied, retrying on ${port + 1}...`);
+          listenWithFallback(port + 1);
+        } else {
+          console.error("Server Error:", err.message);
+        }
+      });
+    };
+
+    listenWithFallback(Number(PORT));
+
   } catch (err) {
-    console.error("Failed to start server:", err.message);
+    console.error("❌ Failed to start server:", err.message);
+    process.exit(1);
   }
 };
 
