@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>BGMI Esports - User Dashboard</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
@@ -20,12 +21,18 @@
           BGMI TOURNAMENT PORTAL
         </h1>
       </div>
-      <nav class="flex flex-wrap justify-center items-center gap-2 sm:gap-4 text-xs sm:text-sm font-semibold">
-        <a id="nav-dashboard" href="index.html" class="text-orange-400 border-b-2 border-orange-400 pb-0.5">📊 Dashboard</a>
-        <a id="nav-register" href="register.html" class="text-slate-400 hover:text-orange-400 pb-0.5">📝 Team Register</a>
-        <a id="nav-stats" href="profile.html" class="text-slate-400 hover:text-orange-400 pb-0.5">🎮 Player Stats</a>
-        <a href="admin.html" class="text-slate-500 hover:text-amber-400 text-[11px] px-2 py-0.5 bg-slate-800 rounded border border-slate-700">🔑 Admin Login</a>
-      </nav>
+      <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2 bg-emerald-950/80 border border-emerald-500/50 px-2.5 py-1 rounded-full">
+          <span class="w-2 h-2 bg-emerald-400 rounded-full animate-ping"></span>
+          <span class="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">LIVE REALTIME</span>
+        </div>
+        <nav class="flex flex-wrap justify-center items-center gap-2 sm:gap-4 text-xs sm:text-sm font-semibold">
+          <a id="nav-dashboard" href="index.html" class="text-orange-400 border-b-2 border-orange-400 pb-0.5 transition-all">📊 Dashboard</a>
+          <a id="nav-register" href="register.html" class="text-slate-400 hover:text-orange-400 pb-0.5 transition-all">📝 Team Register</a>
+          <a id="nav-stats" href="profile.html" class="text-slate-400 hover:text-orange-400 pb-0.5 transition-all">🎮 Player Stats</a>
+          <a href="admin.html" class="text-slate-500 hover:text-amber-400 text-[11px] px-2 py-0.5 bg-slate-800 rounded border border-slate-700 transition-all">🔑 Admin Login</a>
+        </nav>
+      </div>
     </header>
 
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
@@ -59,13 +66,15 @@
     <div class="bg-slate-800 p-4 sm:p-6 rounded-xl border border-slate-700 shadow-xl space-y-4">
       <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-700 pb-3">
         <div>
-          <h2 class="text-base sm:text-lg font-bold text-orange-400">📊 Live Tournament Leaderboard</h2>
-          <p class="text-[11px] text-slate-400">Real-time match scoring and team placement points.</p>
+          <h2 class="text-base sm:text-lg font-bold text-orange-400 flex items-center gap-2">
+            📊 Live Tournament Leaderboard
+          </h2>
+          <p class="text-[11px] text-slate-400">Real-time match scoring and team placement points (Zero reload updates).</p>
         </div>
 
         <div class="flex space-x-2 w-full sm:w-auto justify-end">
-          <button onclick="exportLeaderboardToExcel()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition">📊 Excel</button>
-          <button onclick="exportLeaderboardToPDF()" class="bg-rose-600 hover:bg-rose-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition">📄 PDF</button>
+          <button onclick="exportLeaderboardToExcel()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1">📊 Excel</button>
+          <button onclick="exportLeaderboardToPDF()" class="bg-rose-600 hover:bg-rose-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1">📄 PDF</button>
         </div>
       </div>
 
@@ -116,12 +125,20 @@
   </div>
 
   <script>
+    const socket = io(); // Connect Socket.io client
     const urlParams = new URLSearchParams(window.location.search);
     let activeTournamentId = urlParams.get('tid');
 
     if (activeTournamentId) {
       document.getElementById('nav-register').href = `register.html?tid=${activeTournamentId}`;
     }
+
+    // ⚡ REALTIME WEBSOCKET LISTENER FOR INSTANT POINT TABLE UPDATES
+    socket.on('points_table_updated', (data) => {
+      if (!activeTournamentId || data.tournamentId === activeTournamentId) {
+        renderLeaderboard(data.leaderboard);
+      }
+    });
 
     async function fetchActiveTournament() {
       try {
@@ -131,6 +148,7 @@
 
         if (data.success && data.tournament) {
           activeTournamentId = data.tournament._id || data.tournamentId;
+          socket.emit('join_tournament', activeTournamentId);
           
           document.getElementById('activeTitle').innerText = data.tournament.title || 'BGMI Tournament';
           document.getElementById('activeMode').innerText = `Mode: ${data.tournament.mode || 'SQUAD'}`;
@@ -158,19 +176,28 @@
         const res = await fetch(`/api/tournaments/${activeTournamentId}/leaderboard?t=${Date.now()}`, { cache: 'no-store' });
         const data = await res.json();
 
-        if (data.success && data.leaderboard && data.leaderboard.length > 0) {
-          document.getElementById('leaderboardBody').innerHTML = data.leaderboard.map((team, index) => `
-            <tr class="hover:bg-slate-750 transition">
-              <td class="py-2.5 px-3 font-extrabold text-orange-400">#${index + 1}</td>
-              <td class="py-2.5 px-3 font-bold text-white">${team.teamName || team.teamId}</td>
-              <td class="py-2.5 px-3 text-center">${team.matchesPlayed || 1}</td>
-              <td class="py-2.5 px-3 text-center text-amber-300 font-mono">${team.kills || 0}</td>
-              <td class="py-2.5 px-3 text-center text-emerald-300 font-mono">${team.placementPoints || 0}</td>
-              <td class="py-2.5 px-3 text-right font-extrabold text-emerald-400 font-mono">${team.totalPoints || 0} pts</td>
-            </tr>
-          `).join('');
+        if (data.success && data.leaderboard) {
+          renderLeaderboard(data.leaderboard);
         }
       } catch (err) {}
+    }
+
+    function renderLeaderboard(leaderboardData) {
+      const bodyEl = document.getElementById('leaderboardBody');
+      if (leaderboardData && leaderboardData.length > 0) {
+        bodyEl.innerHTML = leaderboardData.map((team, index) => `
+          <tr class="hover:bg-slate-750 transition">
+            <td class="py-2.5 px-3 font-extrabold text-orange-400">#${index + 1}</td>
+            <td class="py-2.5 px-3 font-bold text-white">${team.teamName || team.teamId}</td>
+            <td class="py-2.5 px-3 text-center">${team.matchesPlayed || 1}</td>
+            <td class="py-2.5 px-3 text-center text-amber-300 font-mono">${team.kills || 0}</td>
+            <td class="py-2.5 px-3 text-center text-emerald-300 font-mono">${team.placementPoints || 0}</td>
+            <td class="py-2.5 px-3 text-right font-extrabold text-emerald-400 font-mono">${team.totalPoints || 0} pts</td>
+          </tr>
+        `).join('');
+      } else {
+        bodyEl.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-slate-500 italic">No match scores available yet.</td></tr>`;
+      }
     }
 
     async function loadRegisteredTeams() {
@@ -225,7 +252,7 @@
 
     window.onload = () => {
       fetchActiveTournament();
-      setInterval(fetchActiveTournament, 10000);
+      setInterval(fetchActiveTournament, 15000); // Background polling fallback
     };
   </script>
 </body>

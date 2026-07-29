@@ -1,5 +1,7 @@
 require('dotenv').config();
 const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
@@ -8,15 +10,8 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jwt-simple');
 
-// --- DATABASE & CACHE CONFIGURATIONS ---
+// --- DATABASE CONFIGURATIONS ---
 const connectDB = require('./config/db');
-const redis = require('./config/redis');
-
-// --- CONTROLLERS ---
-const { submitMatchScore, getLiveLeaderboard } = require('./controllers/leaderboardController');
-const { broadcastRoom } = require('./controllers/roomController');
-const { processScoreScreenshot } = require('./controllers/ocrController');
-const { createOrder, verifyPayment } = require('./controllers/paymentController');
 
 // --- MONGOOSE MODELS ---
 const Team = require('./models/Team');
@@ -24,9 +19,20 @@ const User = require('./models/User');
 const Tournament = require('./models/Tournament');
 const Blacklist = require('./models/Blacklist');
 
+// --- CONTROLLERS ---
+const { broadcastRoom } = require('./controllers/roomController');
+const { processScoreScreenshot } = require('./controllers/ocrController');
+const { createOrder, verifyPayment } = require('./controllers/paymentController');
+
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: { origin: "*" }
+});
+
 const JWT_SECRET = process.env.JWT_SECRET || "bgmi_secret_admin_key_2026";
 
+// Ensure upload directory exists for OCR
 const uploadDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
@@ -36,7 +42,7 @@ const upload = multer({ dest: uploadDir });
 app.use(cors());
 app.use(express.json());
 
-// ⚡ STRICT ANTI-CACHING HEADERS
+// ⚡ Strict Anti-Caching Headers for Real-Time Sync Across Devices
 app.use((req, res, next) => {
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
   res.set('Pragma', 'no-cache');
@@ -49,6 +55,21 @@ app.use(express.static('public'));
 app.get('/', (req, res) => {
   res.redirect('/index.html');
 });
+
+// ==========================================
+// ⚡ SOCKET.IO REALTIME WEBSOCKET CONNECTIONS
+// ==========================================
+io.on('connection', (socket) => {
+  socket.on('join_tournament', (tournamentId) => {
+    socket.join(tournamentId);
+  });
+});
+
+// Helper: Standard BGMI Esports Placement Points Calculation
+function calculatePlacementPoints(rank) {
+  const pointsMap = { 1: 10, 2: 6, 3: 5, 4: 4, 5: 3, 6: 2, 7: 1, 8: 1 };
+  return pointsMap[rank] || 0;
+}
 
 // ==========================================
 // 🔐 ADMIN AUTHENTICATION APIs
@@ -71,7 +92,7 @@ app.post('/api/admin/signup', async (req, res) => {
       name: name || "Organizer Admin",
       email,
       password: hashedPassword,
-      role: "ADMIN"
+role: "ADMIN"
     });
 
     await newAdmin.save();
@@ -116,7 +137,7 @@ app.post('/api/admin/login', async (req, res) => {
 app.post('/api/admin/verify', async (req, res) => {
   try {
     const { token } = req.body;
-    if (!token) return res.status(401).json({ success: false, error: "No session token" });
+    if (!token) return res.status(401).json({ success: false, error: "No session token provided!" });
 
     const decoded = jwt.decode(token, JWT_SECRET);
     const admin = await User.findById(decoded.id);
@@ -127,7 +148,7 @@ app.post('/api/admin/verify', async (req, res) => {
 
     res.status(200).json({ success: true, admin: { id: admin._id, name: admin.name, email: admin.email } });
   } catch (err) {
-    res.status(401).json({ success: false, error: "Invalid session token" });
+    res.status(401).json({ success: false, error: "Invalid or expired session token!" });
   }
 });
 
@@ -184,7 +205,6 @@ app.post('/api/admin/unban-player', async (req, res) => {
 // 🚀 DYNAMIC TOURNAMENT APIs
 // ==========================================
 
-// 1. FETCH ACTIVE OR SPECIFIC TOURNAMENT BY ID (WITH ORGANIZER UPI ID)
 app.get('/api/tournaments/get', async (req, res) => {
   try {
     const { tid } = req.query;
@@ -210,7 +230,6 @@ app.get('/api/tournaments/get', async (req, res) => {
   }
 });
 
-// 2. CREATE TOURNAMENT WITH CUSTOM ORGANIZER UPI ID
 app.post('/api/tournaments/create', async (req, res) => {
   try {
     const { title, mode, entryFee, prizePool, maxSlots, upiId, registrationDeadline, schedule, token } = req.body;
@@ -233,7 +252,7 @@ app.post('/api/tournaments/create', async (req, res) => {
       entryFee: Number(entryFee) || 0,
       prizePool: Number(prizePool) || 0,
       maxSlots: Number(maxSlots) || 25,
-      upiId: upiId || 'esports@upi', // 💳 Save Organizer's custom UPI ID
+      upiId: upiId || 'esports@upi',
       registrationDeadline: registrationDeadline ? new Date(registrationDeadline) : null,
       schedule: schedule ? new Date(schedule) : null,
       status: "UPCOMING",
@@ -252,7 +271,6 @@ app.post('/api/tournaments/create', async (req, res) => {
   }
 });
 
-// 3. FETCH REGISTERED TEAMS
 app.get('/api/tournaments/teams', async (req, res) => {
   try {
     const { tid } = req.query;
@@ -298,7 +316,7 @@ app.post('/api/teams/register', async (req, res) => {
 
     const allSquadUids = [captainUid, ...(members ? members.map(m => m.bgmiUid) : [])].filter(Boolean);
 
-    // 1. Anti-Cheat Blacklist Check
+    // Anti-Cheat Blacklist Verification
     const isBanned = await Blacklist.findOne({ bgmiUid: { $in: allSquadUids } });
     if (isBanned) {
       return res.status(400).json({ 
@@ -307,7 +325,7 @@ app.post('/api/teams/register', async (req, res) => {
       });
     }
 
-    // 2. Duplicate Check
+    // Duplicate Check within Same Tournament
     const existingTeam = await Team.findOne({
       tournamentId: targetTid,
       $or: [
@@ -319,7 +337,7 @@ app.post('/api/teams/register', async (req, res) => {
     if (existingTeam) {
       return res.status(400).json({ 
         success: false, 
-        error: "One of the provided BGMI UIDs is already registered in this specific tournament!" 
+        error: "One of the provided BGMI UIDs is already registered in this tournament!" 
       });
     }
 
@@ -367,14 +385,79 @@ app.post('/api/teams/register', async (req, res) => {
 });
 
 // ==========================================
-// 📷 OCR, DISPATCHER, PAYMENT & SCORES
+// 📊 REALTIME SCORE ENTRY & WEBSOCKET BROADCAST
+// ==========================================
+
+app.post('/api/tournaments/score', async (req, res) => {
+  try {
+    const { tournamentId, teamId, kills, rank } = req.body;
+
+    if (!teamId || kills === undefined || !rank) {
+      return res.status(400).json({ success: false, error: "Team Name, Kills, and Rank are required!" });
+    }
+
+    let targetTid = tournamentId;
+    if (!targetTid || !mongoose.Types.ObjectId.isValid(targetTid)) {
+      const latest = await Tournament.findOne().sort({ createdAt: -1 });
+      if (latest) targetTid = latest._id.toString();
+    }
+
+    const killPoints = Number(kills) || 0;
+    const placementPoints = calculatePlacementPoints(Number(rank));
+    const totalPoints = killPoints + placementPoints;
+
+    const updatedTeam = await Team.findOneAndUpdate(
+      { tournamentId: targetTid, teamName: teamId },
+      { 
+        $inc: { 
+          kills: killPoints, 
+          placementPoints: placementPoints, 
+          totalPoints: totalPoints,
+          matchesPlayed: 1 
+        } 
+      },
+      { new: true, upsert: true }
+    );
+
+    const leaderboard = await Team.find({ tournamentId: targetTid }).sort({ totalPoints: -1, placementPoints: -1, kills: -1 });
+
+    // ⚡ Realtime Socket.io Event Broadcast to all connected dashboards
+    io.to(targetTid).emit('points_table_updated', {
+      tournamentId: targetTid,
+      leaderboard
+    });
+    io.emit('points_table_updated', {
+      tournamentId: targetTid,
+      leaderboard
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Match score updated and live broadcasted successfully!",
+      updatedTeam
+    });
+
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/tournaments/:tournamentId/leaderboard', async (req, res) => {
+  try {
+    const { tournamentId } = req.params;
+    const leaderboard = await Team.find({ tournamentId }).sort({ totalPoints: -1, placementPoints: -1, kills: -1 });
+    res.status(200).json({ success: true, leaderboard });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ==========================================
+// 📷 OCR, DISPATCHER, PAYMENT & STATS
 // ==========================================
 
 app.post('/api/tournaments/upload-score-ocr', upload.single('screenshot'), processScoreScreenshot);
 app.post('/api/tournaments/broadcast-room', broadcastRoom);
-app.post('/api/tournaments/score', submitMatchScore);
-app.get('/api/tournaments/:tournamentId/leaderboard', getLiveLeaderboard);
-
 app.post('/api/payments/create-order', createOrder);
 app.post('/api/payments/verify', verifyPayment);
 
@@ -394,20 +477,15 @@ app.get('/api/players/:uid', async (req, res) => {
 });
 
 // ==========================================
-// 🛠️ SERVER INITIALIZATION
+// 🛠️ SERVER INITIALIZATION & PORT FAILOVER
 // ==========================================
 const startServer = async () => {
   try {
     await connectDB();
-
-    redis.connect().catch(() => {
-      console.warn("⚠️ Redis is offline. Running with fallback DB queries.");
-    });
-
     const PORT = process.env.PORT || 5001;
 
     const listenWithFallback = (port) => {
-      const server = app.listen(port, () => {
+      server.listen(port, () => {
         console.log(`🚀 Platform live on: http://localhost:${port}`);
       });
 
